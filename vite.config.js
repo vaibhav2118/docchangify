@@ -37,7 +37,8 @@ export default defineConfig({
         imageRotate: resolve(__dirname, 'image-rotate.html'),
         markdownEditor: resolve(__dirname, 'markdown-editor.html'),
         richTextEditor: resolve(__dirname, 'rich-text-editor.html'),
-        imageEditor: resolve(__dirname, 'image-editor.html')
+        imageEditor: resolve(__dirname, 'image-editor.html'),
+        tools: resolve(__dirname, 'tools.html')
       }
     }
   }
