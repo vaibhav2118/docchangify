@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://docchangify.in/sitemap.xml
