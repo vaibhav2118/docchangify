@@ -36,7 +36,7 @@ function draw() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.drawImage(img,0,0,canvas.width,canvas.height);
 
-  const text     = document.getElementById('wm-text').value || '© ConvertEra';
+  const text     = document.getElementById('wm-text').value || '© DocChangify';
   const fontSize = parseInt(document.getElementById('wm-size').value) * scale;
   const opacity  = parseInt(document.getElementById('wm-opacity').value) / 100;
   const color    = document.getElementById('wm-color').value;
@@ -88,7 +88,7 @@ document.getElementById('btn-download').addEventListener('click', () => {
   canvas.width = img.width; canvas.height = img.height;
   octx.drawImage(img, 0, 0);
 
-  const text     = document.getElementById('wm-text').value || '© ConvertEra';
+  const text     = document.getElementById('wm-text').value || '© DocChangify';
   const fontSize = parseInt(document.getElementById('wm-size').value);
   const opacity  = parseInt(document.getElementById('wm-opacity').value) / 100;
   const color    = document.getElementById('wm-color').value;

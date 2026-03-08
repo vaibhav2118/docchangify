@@ -1,10 +1,10 @@
 <div align="center">
   
-# ✨ ConvertEra
+# ✨ DocChangify
 
 **A premium suite of free, fast, and secure frontend-only file converters and developer tools.**
 
-![ConvertEra Light Theme Demo](https://img.shields.io/badge/UI-Glassmorphic-6366f1?style=for-the-badge&logo=css3)
+![DocChangify Light Theme Demo](https://img.shields.io/badge/UI-Glassmorphic-6366f1?style=for-the-badge&logo=css3)
 ![Client-Side Architecture](https://img.shields.io/badge/Architecture-100%25%20Client--Side-10b981?style=for-the-badge&logo=javascript)
 ![Vite Build](https://img.shields.io/badge/Build-Vite.js-646cff?style=for-the-badge&logo=vite)
 ![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS-38bdf8?style=for-the-badge&logo=tailwindcss)
@@ -19,7 +19,7 @@
 
 ## 🚀 Features & Tools
 
-ConvertEra is packed with **17 specialized tools**, carefully categorized to optimize your productivity. Each tool works entirely inside your browser, meaning **no files are ever uploaded or saved to a server**.
+DocChangify is packed with **17 specialized tools**, carefully categorized to optimize your productivity. Each tool works entirely inside your browser, meaning **no files are ever uploaded or saved to a server**.
 
 ### 🖼️ Image Tools
 
@@ -57,7 +57,7 @@ ConvertEra is packed with **17 specialized tools**, carefully categorized to opt
 
 ## 🎨 Premium UI/UX Design
 
-ConvertEra is built with an obsessive focus on design and user experience:
+DocChangify is built with an obsessive focus on design and user experience:
 
 - **Deep Obsidian Dark Mode:** A striking, true-black mode with dynamic neon accent glows based on category colors.
 - **Zero FOUC Architecture:** Hard-linked stylesheets ensure perfectly seamless, instant page transitions with zero unstyled HTML flashing.
@@ -68,7 +68,7 @@ ConvertEra is built with an obsessive focus on design and user experience:
 
 ## 🛠️ Architecture & Tech Stack
 
-ConvertEra runs natively in your browser using modern Web APIs. By avoiding server-side computations, we achieve instant conversions and guarantee user privacy.
+DocChangify runs natively in your browser using modern Web APIs. By avoiding server-side computations, we achieve instant conversions and guarantee user privacy.
 
 - **Vite:** Lightning-fast frontend build tooling and local dev server.
 - **HTML5 / Vanilla JavaScript:** Core app logic leveraging the Canvas API, modern DOM manipulation, and native APIs.
@@ -80,13 +80,13 @@ ConvertEra runs natively in your browser using modern Web APIs. By avoiding serv
 
 ## 📦 Getting Started (Local Development)
 
-To run ConvertEra locally on your machine, ensure you have [Node.js](https://nodejs.org/) installed, then follow these steps:
+To run DocChangify locally on your machine, ensure you have [Node.js](https://nodejs.org/) installed, then follow these steps:
 
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/yourusername/convertera.git
-   cd convertera
+   git clone https://github.com/yourusername/docchangify.git
+   cd docchangify
    ```
 
 2. **Install dependencies:**
@@ -113,10 +113,10 @@ To run ConvertEra locally on your machine, ensure you have [Node.js](https://nod
 
 ## 🛡️ Privacy & Security First
 
-ConvertEra is fundamentally safe. The core architecture uses the HTML5 `FileReader` and `Canvas` APIs. When you click or drag a file into an application drop-zone, the file is strictly passed into your browser's local memory footprint. **It never touches a network. We have no databases, no cloud storage, and no backend APIs processing your sensitive media.**
+DocChangify is fundamentally safe. The core architecture uses the HTML5 `FileReader` and `Canvas` APIs. When you click or drag a file into an application drop-zone, the file is strictly passed into your browser's local memory footprint. **It never touches a network. We have no databases, no cloud storage, and no backend APIs processing your sensitive media.**
 
 ---
 
 <div align="center">
-  <p>&copy; 2026 ConvertEra. Designed for speed, built for everyone.</p>
+  <p>&copy; 2026 DocChangify. Designed for speed, built for everyone.</p>
 </div>

@@ -222,11 +222,11 @@ async function renderAndRebuild(bytes, profile, onProgress, basePct, totalPasses
 
 function stripMeta(doc) {
   doc.setTitle('');
-  doc.setAuthor('ConvertEra');
+  doc.setAuthor('DocChangify');
   doc.setSubject('');
   doc.setKeywords([]);
-  doc.setCreator('ConvertEra');
-  doc.setProducer('ConvertEra PDF Compressor');
+  doc.setCreator('DocChangify');
+  doc.setProducer('DocChangify PDF Compressor');
 }
 
 // ── Show results ──────────────────────────────────────────

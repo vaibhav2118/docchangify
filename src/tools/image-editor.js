@@ -202,7 +202,7 @@ function renderTextOverlay() {
 }
 
 function renderWatermarkOverlay() {
-  const text = document.getElementById('wm-text').value || '© ConvertEra';
+  const text = document.getElementById('wm-text').value || '© DocChangify';
   const size = parseInt(document.getElementById('sl-wms').value) * displayScale;
   const opacity = parseInt(document.getElementById('sl-wmo').value) / 100;
   const color = document.getElementById('wm-color').value;
@@ -614,7 +614,7 @@ document.getElementById('wm-pos').addEventListener('change', (e) => {
 document.getElementById('sl-wms').addEventListener('input', function() { document.getElementById('vwms').textContent = this.value+'px'; render(); });
 document.getElementById('sl-wmo').addEventListener('input', function() { document.getElementById('vwmo').textContent = this.value+'%'; render(); });
 document.getElementById('btn-apply-wm').addEventListener('click', () => {
-  const text = document.getElementById('wm-text').value || '© ConvertEra';
+  const text = document.getElementById('wm-text').value || '© DocChangify';
   const size = parseInt(document.getElementById('sl-wms').value);
   const opacity = parseInt(document.getElementById('sl-wmo').value) / 100;
   const color = document.getElementById('wm-color').value;
