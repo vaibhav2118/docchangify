@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Editor - All-in-One Free Online Image Editing Tool | ConvertEra</title>
+    <meta name="description" content="Free all-in-one image editor. Crop, add text, apply filters, rotate, flip, and draw — entirely in your browser. No upload to server." />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script type="module" src="/src/main.js"></script>
+    <style>
+      #canvas-wrap { position: relative; display: inline-block; max-width: 100%; }
+      #main-canvas { display: block; max-width: 100%; cursor: default; border-radius: 12px; }
+      #sel-rect { position: absolute; border: 2px dashed #6366f1; background: rgba(99,102,241,0.1); box-shadow: 0 0 0 9999px rgba(0,0,0,0.4); display: none; pointer-events: none; }
+      #text-overlay { position: absolute; display: none; font-weight: 700; white-space: pre; pointer-events: none; }
+      .tool-tab { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s; border: none; background: transparent; color: #64748b; }
+      .tool-tab:hover { background: #f1f5f9; color: #334155; }
+      .tool-tab.active { background: linear-gradient(135deg,#f97316,#ec4899); color: white; box-shadow: 0 4px 12px rgba(249,115,22,0.3); }
+      .dark .tool-tab { color: #94a3b8; }
+      .dark .tool-tab:hover { background: #1e293b; color: #e2e8f0; }
+      .ctrl-label { font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 4px; display: flex; justify-content: space-between; }
+      .ctrl-val { color: #f97316; font-weight: 800; }
+      input[type=range] { width: 100%; accent-color: #f97316; }
+      input[type=color] { border: none; background: none; padding: 0; height: 36px; width: 100%; border-radius: 8px; cursor: pointer; }
+      .panel-section { padding: 16px; border-bottom: 1px solid #f1f5f9; }
+      .dark .panel-section { border-color: #1e293b; }
+      #draw-canvas { position: absolute; top: 0; left: 0; cursor: crosshair; border-radius: 12px; }
+      .btn-transform { padding: 10px; border-radius: 12px; border: 1.5px solid #e2e8f0; background: white; font-size: 13px; font-weight: 700; color: #475569; cursor: pointer; transition: all 0.15s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+      .btn-transform:hover { border-color: #f97316; color: #f97316; background: #fff7ed; }
+      .dark .btn-transform { background: #1e293b; border-color: #334155; color: #94a3b8; }
+      .dark .btn-transform:hover { border-color: #f97316; color: #f97316; }
+    </style>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="min-h-screen flex flex-col antialiased dark:bg-slate-950 dark:text-slate-100" style="background:#f1f5ff;font-family:'Inter',sans-serif;">
+    <header class="sticky top-0 z-50 glass dark:bg-slate-900/80 border-b border-white/30 dark:border-slate-800 shadow-sm backdrop-blur-xl">
+      <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-[70px]">
+        <a href="/" class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg" style="background:linear-gradient(135deg,#6366f1,#a855f7,#ec4899);"><i class="ph ph-magic-wand text-xl"></i></div>
+          <span class="text-xl font-extrabold" style="background:linear-gradient(135deg,#6366f1,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">ConvertEra</span>
+        </a>
+        <div class="flex items-center gap-3">
+          <button id="btn-undo" class="btn-secondary text-sm px-3 py-2" title="Undo"><i class="ph ph-arrow-counter-clockwise text-lg"></i></button>
+          <button id="btn-redo" class="btn-secondary text-sm px-3 py-2" title="Redo"><i class="ph ph-arrow-clockwise text-lg"></i></button>
+          <button id="btn-reset-all" class="btn-secondary text-sm px-4 py-2"><i class="ph ph-trash-simple"></i> Reset</button>
+          <button id="btn-download-png" class="btn-primary text-sm px-5 py-2" style="background:linear-gradient(135deg,#f97316,#ec4899);"><i class="ph ph-download-simple"></i> PNG</button>
+          <button id="btn-download-jpg" class="btn-primary text-sm px-5 py-2" style="background:linear-gradient(135deg,#6366f1,#a855f7);"><i class="ph ph-download-simple"></i> JPG</button>
+          <a href="/" class="text-sm font-semibold text-slate-500 hover:text-indigo-600 transition-colors">← Back</a>
+          <button id="theme-toggle" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors"><i class="ph ph-moon text-lg block dark:hidden"></i><i class="ph ph-sun text-lg hidden dark:block text-yellow-400"></i></button>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-grow max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full fade-in">
+      <!-- Upload Screen -->
+      <div id="upload-screen">
+        <div class="text-center mb-8">
+          <h1 class="text-4xl md:text-5xl font-black tracking-tight mb-3 text-slate-900 dark:text-white">Image Editor</h1>
+          <p class="text-lg text-slate-500">All-in-one tool: Crop · Filters · Text · Rotate · Flip · Draw — all in your browser.</p>
+        </div>
+        <div id="drop-zone" class="upload-zone max-w-2xl mx-auto">
+          <input type="file" id="file-input" class="hidden" accept="image/*" />
+          <div class="w-24 h-24 mx-auto rounded-3xl icon-image flex items-center justify-center mb-6 shadow-lg"><i class="ph ph-image text-5xl text-white"></i></div>
+          <h3 class="text-3xl font-black mb-3 text-slate-900 dark:text-white">Drop any image here</h3>
+          <p class="text-slate-500 mb-8">PNG, JPG, WEBP · All editing done 100% in your browser</p>
+          <button class="btn-primary px-12 py-4 text-lg pointer-events-none" style="background:linear-gradient(135deg,#f97316,#ec4899);"><i class="ph ph-upload-simple text-2xl"></i> Choose Image</button>
+        </div>
+        <div class="flex flex-wrap justify-center gap-4 mt-8">
+          <div class="flex items-center gap-2 text-sm text-slate-500 font-semibold"><i class="ph ph-crop text-orange-400 text-xl"></i>Crop</div>
+          <div class="flex items-center gap-2 text-sm text-slate-500 font-semibold"><i class="ph ph-sliders text-pink-400 text-xl"></i>Filters</div>
+          <div class="flex items-center gap-2 text-sm text-slate-500 font-semibold"><i class="ph ph-text-t text-purple-400 text-xl"></i>Add Text</div>
+          <div class="flex items-center gap-2 text-sm text-slate-500 font-semibold"><i class="ph ph-arrow-clockwise text-indigo-400 text-xl"></i>Rotate</div>
+          <div class="flex items-center gap-2 text-sm text-slate-500 font-semibold"><i class="ph ph-arrows-left-right text-blue-400 text-xl"></i>Flip</div>
+          <div class="flex items-center gap-2 text-sm text-slate-500 font-semibold"><i class="ph ph-pencil text-emerald-400 text-xl"></i>Draw</div>
+          <div class="flex items-center gap-2 text-sm text-slate-500 font-semibold"><i class="ph ph-copyright text-amber-400 text-xl"></i>Watermark</div>
+        </div>
+      </div>
+
+      <!-- Editor Screen -->
+      <div id="editor-screen" class="hidden">
+        <!-- Mode Tabs -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-2 mb-4 flex flex-wrap gap-1 shadow-sm">
+          <button class="tool-tab active" data-mode="filters"><i class="ph ph-sliders text-lg"></i>Filters</button>
+          <button class="tool-tab" data-mode="crop"><i class="ph ph-crop text-lg"></i>Crop</button>
+          <button class="tool-tab" data-mode="text"><i class="ph ph-text-t text-lg"></i>Add Text</button>
+          <button class="tool-tab" data-mode="transform"><i class="ph ph-arrows-clockwise text-lg"></i>Transform</button>
+          <button class="tool-tab" data-mode="draw"><i class="ph ph-pencil-simple text-lg"></i>Draw</button>
+          <button class="tool-tab" data-mode="watermark"><i class="ph ph-copyright text-lg"></i>Watermark</button>
+          <div class="ml-auto flex items-center gap-2 pr-1">
+            <span id="img-size-label" class="text-xs text-slate-400 font-semibold"></span>
+            <button id="btn-new-img" class="text-xs text-slate-400 hover:text-orange-500 font-bold transition-colors"><i class="ph ph-image"></i> New Image</button>
+          </div>
+        </div>
+
+        <div class="flex gap-4" style="min-height:600px;">
+          <!-- Canvas Area -->
+          <div class="flex-grow bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex items-center justify-center p-4" style="background: repeating-conic-gradient(#e8ecf0 0% 25%, white 0% 50%) 0 0 / 20px 20px;">
+            <div id="canvas-wrap">
+              <canvas id="main-canvas"></canvas>
+              <canvas id="draw-canvas" class="hidden"></canvas>
+              <div id="sel-rect"></div>
+              <div id="text-overlay"></div>
+            </div>
+          </div>
+
+          <!-- Right Panel -->
+          <div class="w-72 flex-shrink-0 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-y-auto">
+
+            <!-- FILTERS panel -->
+            <div id="panel-filters" class="panel-section">
+              <p class="text-sm font-black text-slate-700 dark:text-slate-300 mb-4">Adjustments</p>
+              <div class="space-y-3">
+                <div><div class="ctrl-label">Brightness <span class="ctrl-val" id="vb">100%</span></div><input type="range" id="sl-b" min="0" max="200" value="100" /></div>
+                <div><div class="ctrl-label">Contrast <span class="ctrl-val" id="vc">100%</span></div><input type="range" id="sl-c" min="0" max="200" value="100" /></div>
+                <div><div class="ctrl-label">Saturation <span class="ctrl-val" id="vs">100%</span></div><input type="range" id="sl-s" min="0" max="200" value="100" /></div>
+                <div><div class="ctrl-label">Blur <span class="ctrl-val" id="vbl">0px</span></div><input type="range" id="sl-bl" min="0" max="20" value="0" /></div>
+                <div><div class="ctrl-label">Hue Rotate <span class="ctrl-val" id="vh">0°</span></div><input type="range" id="sl-h" min="0" max="360" value="0" /></div>
+                <div><div class="ctrl-label">Opacity <span class="ctrl-val" id="vo">100%</span></div><input type="range" id="sl-o" min="10" max="100" value="100" /></div>
+              </div>
+              <p class="text-xs font-bold text-slate-500 mt-4 mb-2">Presets</p>
+              <div class="flex flex-wrap gap-1.5">
+                <button class="preset-btn" data-p="original">Original</button>
+                <button class="preset-btn" data-p="grayscale">Grayscale</button>
+                <button class="preset-btn" data-p="sepia">Sepia</button>
+                <button class="preset-btn" data-p="vivid">Vivid</button>
+                <button class="preset-btn" data-p="cool">Cool</button>
+                <button class="preset-btn" data-p="warm">Warm</button>
+                <button class="preset-btn" data-p="vintage">Vintage</button>
+                <button class="preset-btn" data-p="dramatic">Dramatic</button>
+              </div>
+            </div>
+
+            <!-- CROP panel -->
+            <div id="panel-crop" class="panel-section hidden">
+              <p class="text-sm font-black text-slate-700 dark:text-slate-300 mb-3">Crop Image</p>
+              <p class="text-xs text-slate-500 mb-4">Click and drag on the image to select the area to keep.</p>
+              <div id="crop-coords" class="text-xs text-slate-400 mb-4 font-mono"></div>
+              <button id="btn-apply-crop" class="w-full btn-primary py-2.5 text-sm mt-2 opacity-50" style="background:linear-gradient(135deg,#f97316,#ec4899);" disabled><i class="ph ph-crop"></i> Apply Crop</button>
+              <button id="btn-clear-crop" class="w-full btn-secondary py-2 text-sm mt-2">Clear Selection</button>
+            </div>
+
+            <!-- TEXT panel -->
+            <div id="panel-text" class="panel-section hidden">
+              <p class="text-sm font-black text-slate-700 dark:text-slate-300 mb-3">Add Text</p>
+              <div class="space-y-3">
+                <div>
+                  <label class="ctrl-label">Text Content</label>
+                  <textarea id="txt-content" rows="2" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-300 resize-none" placeholder="Your text here..."></textarea>
+                </div>
+                <div><div class="ctrl-label">Font Size <span class="ctrl-val" id="vfs">40px</span></div><input type="range" id="sl-fs" min="10" max="200" value="40" /></div>
+                <div><label class="ctrl-label mb-1 block">Text Color</label><input type="color" id="txt-color" value="#ffffff" /></div>
+                <div>
+                  <label class="ctrl-label mb-1 block">Position</label>
+                  <select id="txt-pos" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white outline-none">
+                    <option value="center">Center</option>
+                    <option value="top-left">Top Left</option>
+                    <option value="top-right">Top Right</option>
+                    <option value="bottom-left">Bottom Left</option>
+                    <option value="bottom-right">Bottom Right</option>
+                  </select>
+                </div>
+                <div><label class="ctrl-label mb-1 block">Font Style</label>
+                  <select id="txt-style" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white outline-none">
+                    <option value="bold">Bold</option>
+                    <option value="normal">Normal</option>
+                    <option value="italic">Italic</option>
+                    <option value="bold italic">Bold Italic</option>
+                  </select>
+                </div>
+                <div><div class="ctrl-label">Background Opacity <span class="ctrl-val" id="vtbo">0%</span></div><input type="range" id="sl-tbo" min="0" max="90" value="0" /></div>
+                <button id="btn-apply-text" class="w-full btn-primary py-2.5 text-sm" style="background:linear-gradient(135deg,#f97316,#ec4899);"><i class="ph ph-text-t"></i> Apply Text</button>
+              </div>
+            </div>
+
+            <!-- TRANSFORM panel -->
+            <div id="panel-transform" class="panel-section hidden">
+              <p class="text-sm font-black text-slate-700 dark:text-slate-300 mb-3">Rotate</p>
+              <div class="grid grid-cols-2 gap-2 mb-4">
+                <button class="btn-transform" data-tr="r90"><i class="ph ph-arrow-clockwise text-2xl"></i>+90°</button>
+                <button class="btn-transform" data-tr="r-90"><i class="ph ph-arrow-counter-clockwise text-2xl"></i>-90°</button>
+                <button class="btn-transform col-span-2" data-tr="r180"><i class="ph ph-arrows-clockwise text-2xl"></i>180°</button>
+              </div>
+              <p class="text-sm font-black text-slate-700 dark:text-slate-300 mb-3">Flip</p>
+              <div class="grid grid-cols-2 gap-2 mb-4">
+                <button class="btn-transform" data-tr="fh"><i class="ph ph-arrows-left-right text-2xl"></i>Horizontal</button>
+                <button class="btn-transform" data-tr="fv"><i class="ph ph-arrows-down-up text-2xl"></i>Vertical</button>
+              </div>
+              <p class="text-sm font-black text-slate-700 dark:text-slate-300 mb-2">Fine Rotation</p>
+              <div><div class="ctrl-label">Angle <span class="ctrl-val" id="vr">0°</span></div><input type="range" id="sl-r" min="-180" max="180" value="0" /></div>
+            </div>
+
+            <!-- DRAW panel -->
+            <div id="panel-draw" class="panel-section hidden">
+              <p class="text-sm font-black text-slate-700 dark:text-slate-300 mb-3">Free Draw</p>
+              <div class="space-y-3">
+                <div><label class="ctrl-label mb-1 block">Brush Color</label><input type="color" id="draw-color" value="#ff4444" /></div>
+                <div><div class="ctrl-label">Brush Size <span class="ctrl-val" id="vds">8px</span></div><input type="range" id="sl-ds" min="1" max="60" value="8" /></div>
+                <div><div class="ctrl-label">Opacity <span class="ctrl-val" id="vdo">100%</span></div><input type="range" id="sl-do" min="10" max="100" value="100" /></div>
+                <div>
+                  <label class="ctrl-label mb-2 block">Tool</label>
+                  <div class="flex gap-2">
+                    <button id="draw-pen" class="flex-1 btn-secondary py-2 text-xs font-bold border-orange-400 text-orange-500 bg-orange-50"><i class="ph ph-pencil-simple"></i> Pen</button>
+                    <button id="draw-eraser" class="flex-1 btn-secondary py-2 text-xs font-bold"><i class="ph ph-eraser"></i> Eraser</button>
+                  </div>
+                </div>
+                <button id="btn-apply-draw" class="w-full btn-primary py-2.5 text-sm" style="background:linear-gradient(135deg,#f97316,#ec4899);"><i class="ph ph-check"></i> Apply Drawing</button>
+                <button id="btn-clear-draw" class="w-full btn-secondary py-2 text-sm"><i class="ph ph-x-circle"></i> Clear Drawing</button>
+              </div>
+            </div>
+
+            <!-- WATERMARK panel -->
+            <div id="panel-watermark" class="panel-section hidden">
+              <p class="text-sm font-black text-slate-700 dark:text-slate-300 mb-3">Watermark</p>
+              <div class="space-y-3">
+                <div><label class="ctrl-label mb-1 block">Text</label><input type="text" id="wm-text" value="© ConvertEra" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-300" /></div>
+                <div><div class="ctrl-label">Size <span class="ctrl-val" id="vwms">28px</span></div><input type="range" id="sl-wms" min="8" max="100" value="28" /></div>
+                <div><div class="ctrl-label">Opacity <span class="ctrl-val" id="vwmo">50%</span></div><input type="range" id="sl-wmo" min="5" max="100" value="50" /></div>
+                <div><label class="ctrl-label mb-1 block">Color</label><input type="color" id="wm-color" value="#ffffff" /></div>
+                <div><label class="ctrl-label mb-1 block">Position</label>
+                  <select id="wm-pos" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white outline-none">
+                    <option value="bottom-right">Bottom Right</option>
+                    <option value="bottom-left">Bottom Left</option>
+                    <option value="top-right">Top Right</option>
+                    <option value="top-left">Top Left</option>
+                    <option value="center">Center</option>
+                    <option value="tile">Tile (Repeat)</option>
+                  </select>
+                </div>
+                <button id="btn-apply-wm" class="w-full btn-primary py-2.5 text-sm" style="background:linear-gradient(135deg,#f97316,#ec4899);"><i class="ph ph-copyright"></i> Apply Watermark</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer class="bg-slate-900 text-slate-400 py-4 text-center text-sm mt-4"><p>&copy; 2026 ConvertEra | <a href="/" class="hover:text-white">Home</a></p></footer>
+    <script type="module" src="/src/tools/image-editor.js"></script>
+  </body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Resizer - Resize Images Online Free | ConvertEra</title>
+    <meta name="description" content="Change the width and height of your images easily. 100% free, browser-based online image resizer." />
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script type="module" src="/src/main.js"></script>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-slate-900 dark:text-slate-100 font-sans min-h-screen flex flex-col antialiased">
+    <header class="sticky top-0 z-50 glass dark:glass border-b border-white/20 dark:border-white/5 backdrop-blur-md shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
+        <a href="/" class="flex items-center gap-2 group">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+            <i class="ph ph-magic-wand text-2xl"></i>
+          </div>
+          <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">ConvertEra</span>
+        </a>
+        <div class="flex items-center gap-6"><button id="theme-toggle" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"><i class="ph ph-moon text-xl block dark:hidden"></i><i class="ph ph-sun text-xl hidden dark:block text-yellow-400"></i></button></div>
+      </div>
+    </header>
+
+    <main class="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full fade-in">
+      <!-- Top Navigation -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <a href="/" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-purple-600 transition-colors">
+          <i class="ph ph-arrow-left text-lg"></i> Back to Tools
+        </a>
+        <nav class="flex items-center gap-2 text-sm text-slate-400 font-medium">
+          <a href="/" class="hover:text-slate-600 dark:hover:text-slate-200 transition-colors">Home</a>
+          <i class="ph ph-caret-right text-xs"></i>
+          <a href="/#image-tools" class="hover:text-slate-600 dark:hover:text-slate-200 transition-colors">Image Tools</a>
+          <i class="ph ph-caret-right text-xs"></i>
+          <span class="text-slate-700 dark:text-slate-300">Image Resizer</span>
+        </nav>
+      </div>
+
+      <div class="text-center mb-12">
+        <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-slate-900 dark:text-white">Image Resizer</h1>
+        <p class="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">Resize any image to exact pixel dimensions instantly. Keeps the process local and private.</p>
+      </div>
+
+      <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden mb-16">
+        <div id="drop-zone" class="upload-zone m-6 group">
+          <input type="file" id="file-input" class="hidden" accept="image/*" />
+          <div class="w-20 h-20 mx-auto rounded-2xl bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-6 shadow-sm border border-slate-100 dark:border-slate-700 group-hover:scale-110 group-hover:shadow-md transition-all"><i class="ph ph-arrows-out-line-horizontal text-4xl"></i></div>
+          <h3 class="text-3xl font-bold mb-3 text-slate-900 dark:text-white">Drag & Drop an image here</h3>
+          <p class="text-slate-500 dark:text-slate-400 mb-8 max-w-md mx-auto">Upload any image file format.</p>
+          <button class="btn-primary px-8 bg-gradient-to-r from-purple-500 to-fuchsia-600 hover:from-purple-600 hover:to-fuchsia-700 shadow-purple-500/30 pointer-events-none">Browse Image</button>
+        </div>
+
+        <div id="result-zone" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-0 mt-0">
+          <!-- Editor Image Preview (Takes up 2 cols) -->
+          <div class="lg:col-span-2 p-8 bg-slate-50 dark:bg-slate-900 flex items-center justify-center border-r border-slate-200 dark:border-slate-700 min-h-[400px]">
+             <img id="preview" src="" class="max-w-full max-h-full object-contain drop-shadow-md rounded border border-slate-200 dark:border-slate-700" />
+          </div>
+
+          <!-- Controls panel -->
+          <div class="p-8 flex flex-col gap-6">
+            <h3 class="text-xl font-bold border-b border-slate-200 dark:border-slate-700 pb-2">Resize Settings</h3>
+            
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Width (px)</label>
+                <input type="number" id="input-width" class="w-full px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+              </div>
+              <div class="flex items-center justify-center text-slate-400">
+                <button id="btn-link" title="Lock Aspect Ratio" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-purple-600 dark:text-purple-400 active"><i class="ph ph-link text-xl" id="icon-link"></i></button>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Height (px)</label>
+                <input type="number" id="input-height" class="w-full px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+              </div>
+            </div>
+
+            <div class="mt-auto space-y-3 pt-6">
+              <button id="btn-apply" class="btn-primary w-full bg-gradient-to-r from-purple-500 to-fuchsia-600 hover:from-purple-600 hover:to-fuchsia-700 shadow-purple-500/30 flex items-center justify-center gap-2 mb-2"><i class="ph ph-magic-wand text-xl"></i> Apply Resize</button>
+              <div class="flex flex-col sm:flex-row gap-3">
+                <button id="btn-reset" class="btn-secondary flex-grow sm:flex-grow-0 flex items-center justify-center gap-2"><i class="ph ph-arrow-counter-clockwise"></i> Reset</button>
+                <a id="btn-download" href="#" class="btn-secondary flex-grow flex items-center justify-center gap-2 pointer-events-none opacity-50 bg-slate-800 text-white hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 border-none transition-colors"><i class="ph ph-download-simple text-xl"></i> Save Image</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Related Tools -->
+      <div class="pt-8 border-t border-slate-200 dark:border-slate-800 mb-16">
+        <div class="flex justify-between items-center mb-8">
+          <h3 class="text-2xl font-bold text-slate-900 dark:text-white">Related Tools</h3>
+          <div class="flex gap-2">
+            <a href="/image-compressor.html" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors tooltip" title="Previous Tool (Compressor)">
+              <i class="ph ph-arrow-left text-lg"></i>
+            </a>
+            <a href="/json-to-csv.html" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors tooltip" title="Next Tool (JSON to CSV)">
+              <i class="ph ph-arrow-right text-lg"></i>
+            </a>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <a href="/png-to-jpg.html" class="saas-card p-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg bg-sky-50 dark:bg-sky-900/20 text-sky-600 flex items-center justify-center"><i class="ph ph-file-png text-xl"></i></div>
+            <div class="font-bold text-sm">PNG to JPG</div>
+          </a>
+          <a href="/jpg-to-png.html" class="saas-card p-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg bg-sky-50 dark:bg-sky-900/20 text-sky-600 flex items-center justify-center"><i class="ph ph-file-jpg text-xl"></i></div>
+            <div class="font-bold text-sm">JPG to PNG</div>
+          </a>
+          <a href="/image-compressor.html" class="saas-card p-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600 flex items-center justify-center"><i class="ph ph-arrows-in text-xl"></i></div>
+            <div class="font-bold text-sm">Image Compressor</div>
+          </a>
+          <a href="/json-to-csv.html" class="saas-card p-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 flex items-center justify-center"><i class="ph ph-brackets-curly text-xl"></i></div>
+            <div class="font-bold text-sm">JSON Format</div>
+          </a>
+        </div>
+      </div>
+    </main>
+    <script type="module" src="/src/tools/image-resizer.js"></script>
+  </body>
+</html>

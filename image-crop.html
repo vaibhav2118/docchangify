@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Crop Tool - Free Online Image Cropper | ConvertEra</title>
+    <meta name="description" content="Crop images online for free. Draw a selection, set exact dimensions, and download the cropped image — all in your browser." />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script type="module" src="/src/main.js"></script>
+    <style>
+      #canvas-container { position: relative; display: inline-block; cursor: crosshair; user-select: none; }
+      #crop-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+      #selection { position: absolute; border: 2px dashed #6366f1; background: rgba(99,102,241,0.12); box-shadow: 0 0 0 9999px rgba(0,0,0,0.45); display: none; }
+    </style>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="min-h-screen flex flex-col antialiased dark:bg-slate-950 dark:text-slate-100" style="background:#f1f5ff;font-family:'Inter',sans-serif;">
+    <header class="sticky top-0 z-50 glass dark:bg-slate-900/80 border-b border-white/30 dark:border-slate-800 shadow-sm backdrop-blur-xl">
+      <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-[70px]">
+        <a href="/" class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg" style="background:linear-gradient(135deg,#6366f1,#a855f7,#ec4899);">
+            <i class="ph ph-magic-wand text-xl"></i>
+          </div>
+          <span class="text-xl font-extrabold" style="background:linear-gradient(135deg,#6366f1,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">ConvertEra</span>
+        </a>
+        <div class="flex items-center gap-4">
+          <a href="/" class="text-sm font-semibold text-slate-500 hover:text-indigo-600 transition-colors">← Back</a>
+          <button id="theme-toggle" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors">
+            <i class="ph ph-moon text-lg block dark:hidden"></i>
+            <i class="ph ph-sun text-lg hidden dark:block text-yellow-400"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full fade-in">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <a href="/" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-orange-500 transition-colors">
+          <i class="ph ph-arrow-left text-lg"></i> Back to Tools
+        </a>
+        <nav class="flex items-center gap-2 text-sm text-slate-400 font-medium">
+          <a href="/" class="hover:text-slate-600">Home</a>
+          <i class="ph ph-caret-right text-xs"></i>
+          <a href="/#image-edit-tools" class="hover:text-slate-600">Image Editing</a>
+          <i class="ph ph-caret-right text-xs"></i>
+          <span class="text-slate-700 dark:text-slate-300">Image Crop</span>
+        </nav>
+      </div>
+
+      <div class="text-center mb-10">
+        <div class="inline-flex py-1.5 px-4 rounded-full text-sm font-bold mb-4 items-center gap-2" style="background:rgba(249,115,22,0.1);color:#f97316;border:1px solid rgba(249,115,22,0.25);">
+          <i class="ph ph-crop"></i> Image Editing
+        </div>
+        <h1 class="text-4xl md:text-5xl font-black tracking-tight mb-4 text-slate-900 dark:text-white">Image Crop Tool</h1>
+        <p class="text-lg text-slate-500 max-w-2xl mx-auto">Upload an image, draw your crop area by dragging, and download the result instantly.</p>
+      </div>
+
+      <!-- Upload Zone -->
+      <div id="upload-section" class="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden mb-8">
+        <div id="drop-zone" class="upload-zone m-6">
+          <input type="file" id="file-input" class="hidden" accept="image/*" />
+          <div class="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center mb-6 shadow-md text-white icon-image">
+            <i class="ph ph-crop text-4xl"></i>
+          </div>
+          <h3 class="text-3xl font-black mb-3 text-slate-900 dark:text-white">Drop your image here</h3>
+          <p class="text-slate-500 mb-8">PNG, JPG, WEBP supported. Draw a rectangle to crop.</p>
+          <button class="btn-primary pointer-events-none px-10" style="background:linear-gradient(135deg,#f97316,#ec4899);">
+            <i class="ph ph-upload-simple text-xl"></i> Browse Image
+          </button>
+        </div>
+      </div>
+
+      <!-- Editor -->
+      <div id="editor-section" class="hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700 p-6 mb-6">
+          <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+            <div>
+              <h3 class="text-lg font-bold text-slate-900 dark:text-white">Draw a selection on the image</h3>
+              <p id="sel-info" class="text-sm text-slate-500 mt-1">No selection yet — click and drag on the image below.</p>
+            </div>
+            <div class="flex gap-3">
+              <button id="btn-reset-sel" class="btn-secondary text-sm px-4 py-2"><i class="ph ph-x-circle"></i> Clear</button>
+              <button id="btn-crop" disabled class="btn-primary text-sm px-6 py-2 opacity-50" style="background:linear-gradient(135deg,#f97316,#ec4899);"><i class="ph ph-crop"></i> Crop</button>
+              <button id="btn-new-image" class="btn-secondary text-sm px-4 py-2"><i class="ph ph-arrow-counter-clockwise"></i> New Image</button>
+            </div>
+          </div>
+          <div class="overflow-auto rounded-2xl bg-slate-100 dark:bg-slate-900 p-2 flex justify-center">
+            <div id="canvas-container">
+              <canvas id="source-canvas"></canvas>
+              <div id="selection"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Result -->
+        <div id="result-section" class="hidden bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700 p-6 mb-8">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <i class="ph ph-check-circle text-green-500 text-2xl"></i> Cropped Result
+            </h3>
+            <div class="flex gap-3">
+              <button id="btn-crop-again" class="btn-secondary text-sm px-4 py-2"><i class="ph ph-arrow-counter-clockwise"></i> Crop Again</button>
+              <button id="btn-download" class="btn-primary text-sm px-6 py-2.5" style="background:linear-gradient(135deg,#10b981,#3cba92);"><i class="ph ph-download-simple"></i> Download</button>
+            </div>
+          </div>
+          <div class="flex justify-center rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-900 p-2">
+            <img id="result-img" class="max-w-full rounded-xl object-contain max-h-[500px]" />
+          </div>
+          <p id="result-info" class="text-sm text-center text-slate-500 mt-3"></p>
+        </div>
+      </div>
+
+      <!-- How it works -->
+      <div class="grid md:grid-cols-3 gap-5 mb-10">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mb-4 text-lg" style="background:linear-gradient(135deg,#f97316,#ec4899);">1</div>
+          <h3 class="font-bold mb-2 text-slate-900 dark:text-white">Upload Image</h3>
+          <p class="text-slate-500 text-sm">Select any PNG, JPG, or WEBP image.</p>
+        </div>
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mb-4 text-lg" style="background:linear-gradient(135deg,#f97316,#ec4899);">2</div>
+          <h3 class="font-bold mb-2 text-slate-900 dark:text-white">Draw Selection</h3>
+          <p class="text-slate-500 text-sm">Click and drag on the image to select the area to keep.</p>
+        </div>
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mb-4 text-lg" style="background:linear-gradient(135deg,#f97316,#ec4899);">3</div>
+          <h3 class="font-bold mb-2 text-slate-900 dark:text-white">Download</h3>
+          <p class="text-slate-500 text-sm">Click Crop and download your trimmed image.</p>
+        </div>
+      </div>
+
+      <!-- Related -->
+      <div class="pt-8 border-t border-slate-200 dark:border-slate-800 mb-16">
+        <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Related Tools</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <a href="/image-filters.html" class="saas-card card-image p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg icon-image flex items-center justify-center flex-shrink-0"><i class="ph ph-sliders text-lg text-white"></i></div>
+            <div class="font-bold text-sm text-slate-800 dark:text-slate-200">Image Filters</div>
+          </a>
+          <a href="/image-watermark.html" class="saas-card card-image p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg icon-image flex items-center justify-center flex-shrink-0"><i class="ph ph-copyright text-lg text-white"></i></div>
+            <div class="font-bold text-sm text-slate-800 dark:text-slate-200">Add Watermark</div>
+          </a>
+          <a href="/image-rotate.html" class="saas-card card-image p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg icon-image flex items-center justify-center flex-shrink-0"><i class="ph ph-arrow-clockwise text-lg text-white"></i></div>
+            <div class="font-bold text-sm text-slate-800 dark:text-slate-200">Rotate & Flip</div>
+          </a>
+          <a href="/image-compressor.html" class="saas-card card-image p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg icon-image flex items-center justify-center flex-shrink-0"><i class="ph ph-arrows-in text-lg text-white"></i></div>
+            <div class="font-bold text-sm text-slate-800 dark:text-slate-200">Compressor</div>
+          </a>
+        </div>
+      </div>
+    </main>
+    <footer class="bg-slate-900 text-slate-400 py-8 text-center text-sm">
+      <p>&copy; 2026 ConvertEra | <a href="/" class="hover:text-white">Home</a></p>
+    </footer>
+    <script type="module" src="/src/tools/image-crop.js"></script>
+  </body>
+</html>

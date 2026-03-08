@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF to Text Converter - Free Online Tool | ConvertEra</title>
+    <meta name="description" content="Extract text from any PDF file instantly in your browser. Free, secure, no upload to server." />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script type="module" src="/src/main.js"></script>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="min-h-screen flex flex-col antialiased transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
+    <header class="sticky top-0 z-50 glass dark:bg-slate-900/80 border-b border-white/30 dark:border-slate-800 shadow-sm backdrop-blur-xl">
+      <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-[70px]">
+        <a href="/" class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg" style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 60%, #ec4899 100%);">
+            <i class="ph ph-magic-wand text-xl"></i>
+          </div>
+          <span class="text-xl font-extrabold" style="background: linear-gradient(135deg, #6366f1, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">ConvertEra</span>
+        </a>
+        <button id="theme-toggle" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+          <i class="ph ph-moon text-lg block dark:hidden"></i>
+          <i class="ph ph-sun text-lg hidden dark:block text-yellow-400"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full fade-in">
+      <!-- Breadcrumb -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <a href="/" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-red-500 transition-colors">
+          <i class="ph ph-arrow-left text-lg"></i> Back to Tools
+        </a>
+        <nav class="flex items-center gap-2 text-sm text-slate-400 font-medium">
+          <a href="/" class="hover:text-slate-600 transition-colors">Home</a>
+          <i class="ph ph-caret-right text-xs"></i>
+          <a href="/#pdf-tools" class="hover:text-slate-600 transition-colors">PDF Tools</a>
+          <i class="ph ph-caret-right text-xs"></i>
+          <span class="text-slate-700 dark:text-slate-300">PDF to Text</span>
+        </nav>
+      </div>
+
+      <!-- Header -->
+      <div class="text-center mb-10">
+        <div class="inline-flex py-1.5 px-4 rounded-full text-sm font-bold mb-4 items-center gap-2" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2);">
+          <i class="ph-fill ph-file-pdf"></i> PDF Tool
+        </div>
+        <h1 class="text-4xl md:text-5xl font-black tracking-tight mb-4 text-slate-900 dark:text-white">PDF to Text Converter</h1>
+        <p class="text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">Extract all text from any PDF document instantly. Your file never leaves your device.</p>
+      </div>
+
+      <!-- Main Tool Card -->
+      <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden mb-10">
+        <!-- Upload Zone -->
+        <div id="drop-zone" class="upload-zone m-6 group">
+          <input type="file" id="file-input" class="hidden" accept="application/pdf" />
+          <div class="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center mb-6 shadow-md text-white" style="background: linear-gradient(135deg, #ef4444, #f97316);">
+            <i class="ph ph-file-pdf text-4xl"></i>
+          </div>
+          <h3 class="text-3xl font-black mb-3 text-slate-900 dark:text-white">Drop your PDF here</h3>
+          <p class="text-slate-500 mb-8 max-w-md mx-auto">Select a PDF file and we'll extract all the text from every page.</p>
+          <button class="btn-primary pointer-events-none px-10" style="background: linear-gradient(135deg, #ef4444, #f97316);">
+            <i class="ph ph-upload-simple text-xl"></i> Browse PDF
+          </button>
+        </div>
+
+        <!-- Result Zone -->
+        <div id="result-zone" class="hidden p-6">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <i class="ph ph-check-circle text-green-500 text-2xl"></i> Extracted Text
+            </h3>
+            <div class="flex gap-3">
+              <button id="btn-reset" class="btn-secondary px-4 py-2 text-sm"><i class="ph ph-arrow-counter-clockwise"></i> Reset</button>
+              <button id="btn-copy" class="btn-primary px-4 py-2 text-sm" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);"><i class="ph ph-copy"></i> Copy</button>
+              <button id="btn-download-txt" class="btn-primary px-4 py-2 text-sm" style="background: linear-gradient(135deg, #ef4444, #f97316);"><i class="ph ph-download-simple"></i> Download TXT</button>
+            </div>
+          </div>
+          <div id="page-info" class="text-sm text-slate-500 mb-3 font-medium"></div>
+          <textarea id="extracted-text" readonly class="w-full h-[400px] p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 resize-none focus:outline-none font-mono text-sm text-slate-700 dark:text-slate-300"></textarea>
+        </div>
+      </div>
+
+      <!-- How it works -->
+      <div class="prose max-w-none mb-10">
+        <h2 class="text-2xl font-bold mb-6 text-slate-900 dark:text-white">How it works</h2>
+        <div class="grid md:grid-cols-3 gap-5 mb-10">
+          <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mb-4 text-lg" style="background: linear-gradient(135deg,#ef4444,#f97316);">1</div>
+            <h3 class="font-bold mb-2 text-slate-900 dark:text-white">Upload PDF</h3>
+            <p class="text-slate-500 text-sm">Drag and drop your PDF file into the upload area.</p>
+          </div>
+          <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mb-4 text-lg" style="background: linear-gradient(135deg,#ef4444,#f97316);">2</div>
+            <h3 class="font-bold mb-2 text-slate-900 dark:text-white">Auto Extract</h3>
+            <p class="text-slate-500 text-sm">PDF.js reads every page and extracts text content locally.</p>
+          </div>
+          <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mb-4 text-lg" style="background: linear-gradient(135deg,#ef4444,#f97316);">3</div>
+            <h3 class="font-bold mb-2 text-slate-900 dark:text-white">Copy or Download</h3>
+            <p class="text-slate-500 text-sm">Copy to clipboard or download as a .txt file.</p>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-200 dark:border-slate-700 mb-10">
+          <h2 class="text-2xl font-bold mb-6 text-slate-900 dark:text-white">FAQ</h2>
+          <div class="space-y-5">
+            <div>
+              <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-1">Is my PDF safe?</h3>
+              <p class="text-slate-500 text-sm">Yes! All processing happens in your browser using PDF.js. No file is uploaded to any server.</p>
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-1">Does it work with scanned PDFs?</h3>
+              <p class="text-slate-500 text-sm">This tool extracts digital text layers. Scanned/image-based PDFs may return little or no text — OCR is not supported.</p>
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-1">What is the file size limit?</h3>
+              <p class="text-slate-500 text-sm">There is no hard limit — it depends on your browser memory. Very large PDFs (100+ pages) may take a moment.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Related Tools -->
+      <div class="pt-8 border-t border-slate-200 dark:border-slate-800 mb-16">
+        <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Related PDF Tools</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <a href="/merge-pdf.html" class="saas-card card-pdf p-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0" style="background:linear-gradient(135deg,#ef4444,#f97316);"><i class="ph ph-git-merge text-xl"></i></div>
+            <div class="font-bold text-sm text-slate-800 dark:text-slate-200">Merge PDF</div>
+          </a>
+          <a href="/split-pdf.html" class="saas-card card-pdf p-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0" style="background:linear-gradient(135deg,#ef4444,#f97316);"><i class="ph ph-scissors text-xl"></i></div>
+            <div class="font-bold text-sm text-slate-800 dark:text-slate-200">Split PDF</div>
+          </a>
+          <a href="/pdf-to-image.html" class="saas-card card-pdf p-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0" style="background:linear-gradient(135deg,#ef4444,#f97316);"><i class="ph ph-image text-xl"></i></div>
+            <div class="font-bold text-sm text-slate-800 dark:text-slate-200">PDF to Image</div>
+          </a>
+          <a href="/compress-pdf.html" class="saas-card card-pdf p-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0" style="background:linear-gradient(135deg,#ef4444,#f97316);"><i class="ph ph-arrows-in text-xl"></i></div>
+            <div class="font-bold text-sm text-slate-800 dark:text-slate-200">Compress PDF</div>
+          </a>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 dark:bg-slate-950 text-slate-400 py-8 text-center text-sm">
+      <p>&copy; 2026 ConvertEra. All rights reserved. | <a href="/" class="hover:text-white transition-colors">Home</a></p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script type="module" src="/src/tools/pdf-to-text.js"></script>
+  </body>
+</html>

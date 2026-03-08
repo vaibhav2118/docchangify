@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rich Text Editor - Format & Download Documents | ConvertEra</title>
+    <meta name="description" content="Free rich text editor online. Format text with bold, italic, lists, headings, and download as HTML or plain text — no account needed." />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script type="module" src="/src/main.js"></script>
+    <style>
+      #editor-content {
+        min-height: 65vh;
+        font-family: 'Inter', sans-serif;
+        font-size: 16px;
+        line-height: 1.8;
+        outline: none;
+        color: #1e293b;
+      }
+      .dark #editor-content { color: #e2e8f0; }
+      #editor-content h1 { font-size: 2em; font-weight: 900; }
+      #editor-content h2 { font-size: 1.5em; font-weight: 800; }
+      #editor-content h3 { font-size: 1.25em; font-weight: 700; }
+      #editor-content ul, #editor-content ol { padding-left: 24px; }
+      #editor-content blockquote { border-left: 4px solid #6366f1; padding-left: 16px; color: #64748b; font-style: italic; }
+      #editor-content a { color: #6366f1; text-decoration: underline; }
+      .toolbar-btn { padding: 6px 10px; border-radius: 8px; cursor: pointer; background: transparent; border: 1px solid transparent; color: #475569; transition: all 0.15s; font-size: 14px; }
+      .toolbar-btn:hover { background: #f1f5f9; border-color: #e2e8f0; }
+      .toolbar-btn.active { background: #eef2ff; border-color: #c7d2fe; color: #6366f1; }
+      .dark .toolbar-btn { color: #94a3b8; }
+      .dark .toolbar-btn:hover { background: #1e293b; border-color: #334155; }
+      .dark .toolbar-btn.active { background: #1e293b; color: #a5b4fc; }
+      .toolbar-sep { width: 1px; height: 24px; background: #e2e8f0; margin: 0 4px; flex-shrink: 0; }
+      .dark .toolbar-sep { background: #334155; }
+    </style>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="min-h-screen flex flex-col antialiased dark:bg-slate-950 dark:text-slate-100" style="background:#f1f5ff;font-family:'Inter',sans-serif;">
+    <header class="sticky top-0 z-50 glass dark:bg-slate-900/80 border-b border-white/30 dark:border-slate-800 shadow-sm backdrop-blur-xl">
+      <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-[70px]">
+        <a href="/" class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg" style="background:linear-gradient(135deg,#6366f1,#a855f7,#ec4899);"><i class="ph ph-magic-wand text-xl"></i></div>
+          <span class="text-xl font-extrabold" style="background:linear-gradient(135deg,#6366f1,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">ConvertEra</span>
+        </a>
+        <div class="flex items-center gap-3">
+          <button id="btn-clear" class="btn-secondary text-sm px-4 py-2"><i class="ph ph-trash"></i> Clear</button>
+          <button id="btn-copy-text" class="btn-secondary text-sm px-4 py-2"><i class="ph ph-copy"></i> Copy Text</button>
+          <button id="btn-download-html" class="btn-primary text-sm px-5 py-2" style="background:linear-gradient(135deg,#6366f1,#a855f7);"><i class="ph ph-download-simple"></i> HTML</button>
+          <button id="btn-download-txt" class="btn-primary text-sm px-5 py-2" style="background:linear-gradient(135deg,#a855f7,#ec4899);"><i class="ph ph-download-simple"></i> .txt</button>
+          <a href="/" class="text-sm font-semibold text-slate-500 hover:text-indigo-600 transition-colors">← Back</a>
+          <button id="theme-toggle" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors"><i class="ph ph-moon text-lg block dark:hidden"></i><i class="ph ph-sun text-lg hidden dark:block text-yellow-400"></i></button>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-grow max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full fade-in">
+      <div class="text-center mb-8">
+        <h1 class="text-4xl md:text-5xl font-black tracking-tight mb-3 text-slate-900 dark:text-white">Rich Text Editor</h1>
+        <p class="text-lg text-slate-500">Format your document with a full toolbar. Download as HTML file or plain text.</p>
+      </div>
+
+      <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
+        <!-- Toolbar -->
+        <div id="toolbar" class="flex flex-wrap items-center gap-1 px-4 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+          <!-- Heading -->
+          <select id="sel-format" class="h-8 text-sm font-semibold px-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 outline-none cursor-pointer focus:ring-2 focus:ring-indigo-300">
+            <option value="div">Normal</option>
+            <option value="h1">Heading 1</option>
+            <option value="h2">Heading 2</option>
+            <option value="h3">Heading 3</option>
+          </select>
+          <div class="toolbar-sep"></div>
+          <!-- Bold / Italic / Underline -->
+          <button class="toolbar-btn font-black" id="cmd-bold" title="Bold (Ctrl+B)"><i class="ph ph-text-b text-base"></i></button>
+          <button class="toolbar-btn italic" id="cmd-italic" title="Italic (Ctrl+I)"><i class="ph ph-text-italic text-base"></i></button>
+          <button class="toolbar-btn underline" id="cmd-underline" title="Underline (Ctrl+U)"><i class="ph ph-text-underline text-base"></i></button>
+          <button class="toolbar-btn" id="cmd-strikeThrough" title="Strikethrough"><i class="ph ph-text-strikethrough text-base"></i></button>
+          <div class="toolbar-sep"></div>
+          <!-- Lists -->
+          <button class="toolbar-btn" id="cmd-insertUnorderedList" title="Bullet List"><i class="ph ph-list-bullets text-base"></i></button>
+          <button class="toolbar-btn" id="cmd-insertOrderedList" title="Numbered List"><i class="ph ph-list-numbers text-base"></i></button>
+          <div class="toolbar-sep"></div>
+          <!-- Align -->
+          <button class="toolbar-btn" id="cmd-justifyLeft" title="Align Left"><i class="ph ph-text-align-left text-base"></i></button>
+          <button class="toolbar-btn" id="cmd-justifyCenter" title="Center"><i class="ph ph-text-align-center text-base"></i></button>
+          <button class="toolbar-btn" id="cmd-justifyRight" title="Align Right"><i class="ph ph-text-align-right text-base"></i></button>
+          <div class="toolbar-sep"></div>
+          <!-- Colors -->
+          <div class="flex items-center gap-1">
+            <label class="text-xs text-slate-500 font-semibold">Text:</label>
+            <input type="color" id="txt-color" value="#1e293b" class="w-7 h-7 rounded cursor-pointer border-0 p-0.5 bg-transparent" title="Text Color" />
+          </div>
+          <div class="flex items-center gap-1">
+            <label class="text-xs text-slate-500 font-semibold">BG:</label>
+            <input type="color" id="bg-color" value="#ffff88" class="w-7 h-7 rounded cursor-pointer border-0 p-0.5 bg-transparent" title="Highlight Color" />
+          </div>
+          <div class="toolbar-sep"></div>
+          <!-- Indent -->
+          <button class="toolbar-btn" id="cmd-outdent" title="Decrease Indent"><i class="ph ph-arrow-line-left text-base"></i></button>
+          <button class="toolbar-btn" id="cmd-indent" title="Increase Indent"><i class="ph ph-arrow-line-right text-base"></i></button>
+          <div class="toolbar-sep"></div>
+          <!-- Quote & HR -->
+          <button class="toolbar-btn" id="cmd-quote" title="Blockquote"><i class="ph ph-quotes text-base"></i></button>
+          <button class="toolbar-btn" id="cmd-hr" title="Horizontal Rule"><i class="ph ph-minus text-base"></i></button>
+          <div class="toolbar-sep"></div>
+          <!-- Undo / Redo -->
+          <button class="toolbar-btn" id="cmd-undo" title="Undo (Ctrl+Z)"><i class="ph ph-arrow-counter-clockwise text-base"></i></button>
+          <button class="toolbar-btn" id="cmd-redo" title="Redo"><i class="ph ph-arrow-clockwise text-base"></i></button>
+          <!-- Word count right -->
+          <span id="wc" class="ml-auto text-xs text-slate-400 font-medium pr-1">0 words</span>
+        </div>
+
+        <!-- Content -->
+        <div id="editor-content"
+          contenteditable="true"
+          class="p-8 focus:outline-none"
+          data-placeholder="Start typing your document here...">
+          <h1>Welcome to ConvertEra Rich Text Editor</h1>
+          <p>Use the toolbar above to format your text. You can make text <strong>bold</strong>, <em>italic</em>, <u>underlined</u>, or <s>strikethrough</s>.</p>
+          <ul>
+            <li>Create bullet lists</li>
+            <li>Add numbered lists</li>
+            <li>Change text color and highlight</li>
+          </ul>
+          <p>Download your document as HTML or plain text when you're done!</p>
+        </div>
+      </div>
+    </main>
+    <footer class="bg-slate-900 text-slate-400 py-4 text-center text-sm mt-8"><p>&copy; 2026 ConvertEra | <a href="/" class="hover:text-white">Home</a></p></footer>
+    <script type="module" src="/src/tools/rich-text-editor.js"></script>
+  </body>
+</html>

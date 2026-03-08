@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JPG to PNG Converter - Free Online Image Tool | ConvertEra</title>
+    <meta name="description" content="Convert JPG images to transparent-ready PNG files instantly. 100% free, secure, and browser-based format conversion." />
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script type="module" src="/src/main.js"></script>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-slate-900 dark:text-slate-100 font-sans min-h-screen flex flex-col antialiased">
+    <header class="sticky top-0 z-50 glass dark:glass border-b border-white/20 dark:border-white/5 backdrop-blur-md shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
+        <a href="/" class="flex items-center gap-2 group">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 group-hover:scale-105 transition-transform"><i class="ph ph-magic-wand text-2xl"></i></div>
+          <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 hover:opacity-80 transition-opacity">ConvertEra</span>
+        </a>
+        <div class="flex items-center gap-6"><button id="theme-toggle" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"><i class="ph ph-moon text-xl block dark:hidden"></i><i class="ph ph-sun text-xl hidden dark:block text-yellow-400"></i></button></div>
+      </div>
+    </header>
+
+    <main class="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full fade-in">
+      <!-- Top Navigation -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <a href="/" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors">
+          <i class="ph ph-arrow-left text-lg"></i> Back to Tools
+        </a>
+        <nav class="flex items-center gap-2 text-sm text-slate-400 font-medium">
+          <a href="/" class="hover:text-slate-600 dark:hover:text-slate-200 transition-colors">Home</a>
+          <i class="ph ph-caret-right text-xs"></i>
+          <a href="/#image-tools" class="hover:text-slate-600 dark:hover:text-slate-200 transition-colors">Image Tools</a>
+          <i class="ph ph-caret-right text-xs"></i>
+          <span class="text-slate-700 dark:text-slate-300">JPG to PNG</span>
+        </nav>
+      </div>
+      
+      <div class="text-center mb-12">
+        <div class="inline-flex py-1 px-3 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-sm font-semibold border border-blue-200 dark:border-blue-800 mb-4 items-center gap-2"><i class="ph-fill ph-shield-check"></i> Private Processing</div>
+        <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-slate-900 dark:text-white">JPG to PNG Converter</h1>
+        <p class="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">Losslessly decode JPG and convert to standard PNG elements securely and instantly in your browser.</p>
+      </div>
+
+      <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden mb-16">
+        <div id="drop-zone" class="upload-zone m-6 group">
+          <input type="file" id="file-input" class="hidden" accept="image/jpeg, image/jpg" />
+          <div class="w-20 h-20 mx-auto rounded-2xl bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-6 shadow-sm border border-slate-100 dark:border-slate-700 group-hover:scale-110 group-hover:shadow-md transition-all"><i class="ph ph-upload-simple text-4xl"></i></div>
+          <h3 class="text-3xl font-bold mb-3 text-slate-900 dark:text-white">Drag & Drop your JPG here</h3>
+          <p class="text-slate-500 dark:text-slate-400 mb-8 max-w-md mx-auto">Drop your file directly into this zone or click the button below to browse your computer.</p>
+          <button class="btn-primary pointer-events-none">Browse Files</button>
+        </div>
+
+        <div id="result-zone" class="hidden flex flex-col items-center justify-center p-8 bg-slate-50 dark:bg-slate-800/50">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
+            <div class="bg-white dark:bg-slate-700 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-600">
+              <h4 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider pl-1 mb-4 flex items-center gap-2"><i class="ph ph-image"></i> Original JPG</h4>
+              <div class="aspect-video w-full rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 mb-4 border border-slate-200 dark:border-slate-600 flex items-center justify-center"><img id="preview-original" src="" class="max-w-full max-h-full object-contain" /></div>
+              <div class="flex justify-between items-center text-sm"><span class="text-slate-600 dark:text-slate-300 font-medium truncate max-w-[150px]" id="original-filename">file.jpg</span><span class="bg-slate-100 dark:bg-slate-600 px-3 py-1 rounded-full font-mono text-xs" id="original-size">--</span></div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-700 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-600 relative overflow-hidden">
+              <div class="absolute -right-12 -top-12 w-32 h-32 bg-green-500/10 rounded-full blur-2xl"></div>
+              <h4 class="text-sm font-bold text-green-600 dark:text-green-400 uppercase tracking-wider pl-1 mb-4 flex items-center gap-2"><i class="ph ph-check-circle"></i> Converted PNG</h4>
+              <div class="aspect-video w-full rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 mb-4 border border-slate-200 dark:border-slate-600 flex items-center justify-center pattern-checkerboard"><img id="preview-converted" src="" class="max-w-full max-h-full object-contain" /></div>
+              <div class="flex justify-between items-center text-sm mb-6"><span class="text-slate-600 dark:text-slate-300 font-medium">output.png</span><span class="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-3 py-1 rounded-full font-mono text-xs font-bold" id="converted-size">--</span></div>
+              <div class="flex flex-col sm:flex-row gap-4 w-full">
+                <button id="btn-reset" class="btn-secondary flex items-center justify-center gap-2"><i class="ph ph-arrow-counter-clockwise"></i> Reset</button>
+                <a id="btn-download" href="#" download="converted.png" class="btn-primary flex-grow flex items-center justify-center gap-2"><i class="ph ph-download-simple text-xl"></i> Download PNG</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="prose dark:prose-invert max-w-none mb-16">
+        <h2 class="text-2xl font-bold mb-4">How to convert JPG to PNG</h2>
+        <div class="grid md:grid-cols-3 gap-6 mb-12">
+          <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700"><h3 class="text-lg font-bold mb-2">1. Upload</h3><p class="text-sm">Drag your compressed JPG graphic.</p></div>
+          <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700"><h3 class="text-lg font-bold mb-2">2. Converting</h3><p class="text-sm">We use HTML5 to encode it locally.</p></div>
+          <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700"><h3 class="text-lg font-bold mb-2">3. Download</h3><p class="text-sm">Save your uncompressed PNG file.</p></div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-200 dark:border-slate-700">
+          <h2 class="text-2xl font-bold mb-6">Frequently Asked Questions</h2>
+          <div class="space-y-4">
+            <div><h3 class="text-lg font-bold">Why is PNG larger than JPG?</h3><p>PNG is typically lossless and stores precise color per pixel, generating larger files. JPG is lossy.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Related Tools -->
+      <div class="pt-8 border-t border-slate-200 dark:border-slate-800 mb-16">
+        <div class="flex justify-between items-center mb-8">
+          <h3 class="text-2xl font-bold text-slate-900 dark:text-white">Related Tools</h3>
+          <div class="flex gap-2">
+            <a href="/png-to-jpg.html" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors tooltip" title="Previous Tool (PNG to JPG)">
+              <i class="ph ph-arrow-left text-lg"></i>
+            </a>
+            <a href="/image-compressor.html" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors tooltip" title="Next Tool (Compressor)">
+              <i class="ph ph-arrow-right text-lg"></i>
+            </a>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <a href="/png-to-jpg.html" class="saas-card p-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg bg-sky-50 dark:bg-sky-900/20 text-sky-600 flex items-center justify-center"><i class="ph ph-file-png text-xl"></i></div>
+            <div class="font-bold text-sm">PNG to JPG</div>
+          </a>
+          <a href="/image-compressor.html" class="saas-card p-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600 flex items-center justify-center"><i class="ph ph-arrows-in text-xl"></i></div>
+            <div class="font-bold text-sm">Image Compressor</div>
+          </a>
+          <a href="/image-resizer.html" class="saas-card p-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-600 flex items-center justify-center"><i class="ph ph-arrows-out-line-horizontal text-xl"></i></div>
+            <div class="font-bold text-sm">Image Resizer</div>
+          </a>
+          <a href="/base64.html" class="saas-card p-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 flex items-center justify-center"><i class="ph ph-code text-xl"></i></div>
+            <div class="font-bold text-sm">Base64 Encode</div>
+          </a>
+        </div>
+      </div>
+    </main>
+    <style>
+      .pattern-checkerboard { background-image: linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc), linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc); background-size: 20px 20px; background-position: 0 0, 10px 10px; }
+      .dark .pattern-checkerboard { background-image: linear-gradient(45deg, #0f172a 25%, transparent 25%, transparent 75%, #0f172a 75%, #0f172a), linear-gradient(45deg, #0f172a 25%, transparent 25%, transparent 75%, #0f172a 75%, #0f172a); }
+    </style>
+    <script type="module" src="/src/tools/jpg-to-png.js"></script>
+  </body>
+</html>

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contact Us - ConvertEra</title>
+    <meta name="description" content="Get in touch with the ConvertEra team for feedback, bug reports, or general inquiries." />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script type="module" src="/src/main.js"></script>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="min-h-screen flex flex-col antialiased transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100" style="background: #f1f5ff; font-family: 'Inter', sans-serif;">
+    <header class="sticky top-0 z-50 glass dark:bg-slate-900/80 border-b border-white/30 dark:border-slate-800 shadow-sm backdrop-blur-xl">
+      <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-[70px]">
+        <a href="/" class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg" style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 60%, #ec4899 100%);">
+            <i class="ph ph-magic-wand text-xl"></i>
+          </div>
+          <span class="text-xl font-extrabold" style="background: linear-gradient(135deg, #6366f1, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">ConvertEra</span>
+        </a>
+        <div class="flex items-center gap-4">
+          <a href="/" class="text-sm font-semibold text-slate-500 hover:text-indigo-600 transition-colors">← Back to Tools</a>
+          <button id="theme-toggle" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors">
+            <i class="ph ph-moon text-lg block dark:hidden"></i>
+            <i class="ph ph-sun text-lg hidden dark:block text-yellow-400"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-grow max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 w-full">
+      <div class="text-center mb-14">
+        <div class="w-20 h-20 mx-auto rounded-3xl flex items-center justify-center text-white mb-6 shadow-xl" style="background: linear-gradient(135deg, #6366f1, #ec4899);">
+          <i class="ph ph-chat-circle-dots text-4xl"></i>
+        </div>
+        <h1 class="text-5xl font-black text-slate-900 dark:text-white mb-4">Contact Us</h1>
+        <p class="text-xl text-slate-500 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
+          We'd love to hear from you. Reach out for any questions, feedback, or bug reports.
+        </p>
+      </div>
+
+      <!-- Contact Channels -->
+      <div class="grid md:grid-cols-2 gap-6 mb-10">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm p-8 flex flex-col items-start gap-4">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white" style="background: linear-gradient(135deg,#6366f1,#a855f7);">
+            <i class="ph ph-envelope text-2xl"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-black text-slate-900 dark:text-white mb-1">Email</h3>
+            <p class="text-sm text-slate-500 mb-3">For general inquiries, feedback, or business-related communication.</p>
+            <a href="mailto:support@convertera.app" class="text-indigo-600 font-bold hover:underline">support@convertera.app</a>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm p-8 flex flex-col items-start gap-4">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white" style="background: linear-gradient(135deg,#ef4444,#f97316);">
+            <i class="ph ph-bug text-2xl"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-black text-slate-900 dark:text-white mb-1">Bug Reports</h3>
+            <p class="text-sm text-slate-500 mb-3">Found something broken? Please describe the issue, your browser, and the tool name.</p>
+            <a href="mailto:bugs@convertera.app" class="text-red-500 font-bold hover:underline">bugs@convertera.app</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Important Notice -->
+      <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-2xl p-6 mb-10">
+        <div class="flex gap-3 items-start">
+          <i class="ph ph-warning text-2xl text-amber-500 flex-shrink-0 mt-0.5"></i>
+          <div>
+            <h3 class="font-bold text-amber-900 dark:text-amber-300 mb-2">Please Read Before Contacting</h3>
+            <ul class="text-sm text-amber-800 dark:text-amber-400 space-y-1.5">
+              <li>• <strong>We do not store your files.</strong> All processing is local. We cannot recover, access, or troubleshoot processed files.</li>
+              <li>• <strong>We do not provide legal, financial, or medical advice.</strong> ConvertEra is a file utility platform only.</li>
+              <li>• <strong>We cannot assist with copyright disputes</strong> involving third-party content you choose to process with our tools.</li>
+              <li>• Response times may vary. We are an independent project and reply on a best-effort basis.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Response Time -->
+      <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm p-8 mb-10">
+        <h2 class="text-2xl font-black text-slate-900 dark:text-white mb-4">What to Include in Your Message</h2>
+        <div class="space-y-3">
+          <div class="flex gap-3 items-start">
+            <i class="ph ph-check-circle text-xl text-emerald-500 flex-shrink-0 mt-0.5"></i>
+            <p class="text-slate-600 dark:text-slate-400 text-sm"><strong>Tool name</strong> — Which specific tool were you using?</p>
+          </div>
+          <div class="flex gap-3 items-start">
+            <i class="ph ph-check-circle text-xl text-emerald-500 flex-shrink-0 mt-0.5"></i>
+            <p class="text-slate-600 dark:text-slate-400 text-sm"><strong>Browser and version</strong> — e.g., Chrome 120, Firefox 122, Safari 17</p>
+          </div>
+          <div class="flex gap-3 items-start">
+            <i class="ph ph-check-circle text-xl text-emerald-500 flex-shrink-0 mt-0.5"></i>
+            <p class="text-slate-600 dark:text-slate-400 text-sm"><strong>Description of the problem</strong> — What did you expect? What happened instead?</p>
+          </div>
+          <div class="flex gap-3 items-start">
+            <i class="ph ph-check-circle text-xl text-emerald-500 flex-shrink-0 mt-0.5"></i>
+            <p class="text-slate-600 dark:text-slate-400 text-sm"><strong>File type (not the file itself)</strong> — e.g., "a 2 MB PDF with 20 pages". Do NOT send us your actual files.</p>
+          </div>
+        </div>
+        <div class="mt-6 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+          <p class="text-xs text-slate-500 font-medium">📬 Expected response time: <span class="text-slate-700 dark:text-slate-300">2–5 business days</span>. We reply to all valid inquiries.</p>
+        </div>
+      </div>
+
+      <div class="text-center pt-4">
+        <p class="text-slate-400 text-sm">Last updated: March 2026 &nbsp;·&nbsp; <a href="/about.html" class="text-indigo-500 hover:underline">About Us</a> &nbsp;·&nbsp; <a href="/privacy.html" class="text-indigo-500 hover:underline">Privacy Policy</a></p>
+      </div>
+    </main>
+
+    <footer class="bg-slate-900 dark:bg-slate-950 text-slate-400 py-8 text-center text-sm">
+      <p>&copy; 2026 ConvertEra. All rights reserved. | <a href="/" class="hover:text-white transition-colors">Home</a> | <a href="/privacy.html" class="hover:text-white transition-colors">Privacy</a> | <a href="/terms.html" class="hover:text-white transition-colors">Terms</a></p>
+    </footer>
+  </body>
+</html>

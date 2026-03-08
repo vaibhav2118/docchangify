@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add Watermark to Image - Free Online Watermark Tool | ConvertEra</title>
+    <meta name="description" content="Add custom text watermarks to your images online for free. Choose position, font size, opacity, and color. No upload to server." />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script type="module" src="/src/main.js"></script>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="min-h-screen flex flex-col antialiased dark:bg-slate-950 dark:text-slate-100" style="background:#f1f5ff;font-family:'Inter',sans-serif;">
+    <header class="sticky top-0 z-50 glass dark:bg-slate-900/80 border-b border-white/30 dark:border-slate-800 shadow-sm backdrop-blur-xl">
+      <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-[70px]">
+        <a href="/" class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg" style="background:linear-gradient(135deg,#6366f1,#a855f7,#ec4899);"><i class="ph ph-magic-wand text-xl"></i></div>
+          <span class="text-xl font-extrabold" style="background:linear-gradient(135deg,#6366f1,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">ConvertEra</span>
+        </a>
+        <div class="flex items-center gap-4">
+          <a href="/" class="text-sm font-semibold text-slate-500 hover:text-orange-500 transition-colors">← Back</a>
+          <button id="theme-toggle" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors"><i class="ph ph-moon text-lg block dark:hidden"></i><i class="ph ph-sun text-lg hidden dark:block text-yellow-400"></i></button>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full fade-in">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <a href="/" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-orange-500 transition-colors"><i class="ph ph-arrow-left text-lg"></i> Back to Tools</a>
+        <nav class="flex items-center gap-2 text-sm text-slate-400 font-medium">
+          <a href="/" class="hover:text-slate-600">Home</a><i class="ph ph-caret-right text-xs"></i>
+          <a href="/#image-edit-tools" class="hover:text-slate-600">Image Editing</a><i class="ph ph-caret-right text-xs"></i>
+          <span class="text-slate-700 dark:text-slate-300">Add Watermark</span>
+        </nav>
+      </div>
+
+      <div class="text-center mb-10">
+        <div class="inline-flex py-1.5 px-4 rounded-full text-sm font-bold mb-4 items-center gap-2" style="background:rgba(249,115,22,0.1);color:#f97316;border:1px solid rgba(249,115,22,0.25);"><i class="ph ph-copyright"></i> Image Editing</div>
+        <h1 class="text-4xl md:text-5xl font-black tracking-tight mb-4 text-slate-900 dark:text-white">Add Watermark to Image</h1>
+        <p class="text-lg text-slate-500 max-w-2xl mx-auto">Overlay custom text on your images. Choose position, size, color, and opacity.</p>
+      </div>
+
+      <div id="upload-section" class="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden mb-8">
+        <div id="drop-zone" class="upload-zone m-6">
+          <input type="file" id="file-input" class="hidden" accept="image/*" />
+          <div class="w-20 h-20 mx-auto rounded-2xl icon-image flex items-center justify-center mb-6 shadow-md"><i class="ph ph-copyright text-4xl text-white"></i></div>
+          <h3 class="text-3xl font-black mb-3 text-slate-900 dark:text-white">Drop your image here</h3>
+          <p class="text-slate-500 mb-8">PNG, JPG, WEBP supported.</p>
+          <button class="btn-primary pointer-events-none px-10" style="background:linear-gradient(135deg,#f97316,#ec4899);"><i class="ph ph-upload-simple text-xl"></i> Browse Image</button>
+        </div>
+      </div>
+
+      <div id="editor-section" class="hidden">
+        <div class="grid lg:grid-cols-2 gap-6 mb-8">
+          <!-- Canvas preview -->
+          <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-5 shadow-xl">
+            <h3 class="font-bold text-slate-900 dark:text-white mb-3 text-lg">Preview</h3>
+            <div class="rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-900 flex justify-center">
+              <canvas id="preview-canvas" class="max-w-full max-h-[420px] object-contain block"></canvas>
+            </div>
+          </div>
+          <!-- Controls -->
+          <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-6 shadow-xl space-y-4">
+            <h3 class="font-bold text-slate-900 dark:text-white text-lg">Watermark Settings</h3>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Text</label>
+              <input type="text" id="wm-text" value="© ConvertEra" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-400 outline-none font-semibold" />
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Font Size</label>
+                <div class="flex justify-between mb-1"><span class="text-xs text-slate-400">Size</span><span id="val-size" class="text-xs font-bold text-orange-500">32px</span></div>
+                <input type="range" id="wm-size" min="10" max="120" value="32" class="w-full accent-orange-500" />
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Opacity</label>
+                <div class="flex justify-between mb-1"><span class="text-xs text-slate-400">Opacity</span><span id="val-opacity" class="text-xs font-bold text-orange-500">60%</span></div>
+                <input type="range" id="wm-opacity" min="5" max="100" value="60" class="w-full accent-orange-500" />
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Color</label>
+                <input type="color" id="wm-color" value="#ffffff" class="w-full h-12 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer" />
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Position</label>
+                <select id="wm-position" class="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-semibold focus:ring-2 focus:ring-orange-400 outline-none">
+                  <option value="bottom-right">Bottom Right</option>
+                  <option value="bottom-left">Bottom Left</option>
+                  <option value="top-right">Top Right</option>
+                  <option value="top-left">Top Left</option>
+                  <option value="center">Center</option>
+                  <option value="tile">Tile (Repeat)</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex gap-3 pt-2">
+              <button id="btn-new-image" class="btn-secondary text-sm px-4 py-2.5 flex-1"><i class="ph ph-image"></i> New Image</button>
+              <button id="btn-download" class="btn-primary text-sm px-6 py-2.5 flex-1" style="background:linear-gradient(135deg,#f97316,#ec4899);"><i class="ph ph-download-simple"></i> Download</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer class="bg-slate-900 text-slate-400 py-8 text-center text-sm"><p>&copy; 2026 ConvertEra | <a href="/" class="hover:text-white">Home</a></p></footer>
+    <script type="module" src="/src/tools/image-watermark.js"></script>
+  </body>
+</html>

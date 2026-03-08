@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Merge PDF - Combine Multiple PDFs Online | ConvertEra</title>
+    <meta name="description" content="Merge multiple PDF files into one single PDF in your browser. Free, fast, and private." />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script type="module" src="/src/main.js"></script>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="min-h-screen flex flex-col antialiased transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
+    <header class="sticky top-0 z-50 glass dark:bg-slate-900/80 border-b border-white/30 dark:border-slate-800 shadow-sm backdrop-blur-xl">
+      <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-[70px]">
+        <a href="/" class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg" style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 60%, #ec4899 100%);">
+            <i class="ph ph-magic-wand text-xl"></i>
+          </div>
+          <span class="text-xl font-extrabold" style="background: linear-gradient(135deg, #6366f1, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">ConvertEra</span>
+        </a>
+        <button id="theme-toggle" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+          <i class="ph ph-moon text-lg block dark:hidden"></i>
+          <i class="ph ph-sun text-lg hidden dark:block text-yellow-400"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full fade-in">
+      <!-- Breadcrumb -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <a href="/" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-red-500 transition-colors">
+          <i class="ph ph-arrow-left text-lg"></i> Back to Tools
+        </a>
+        <nav class="flex items-center gap-2 text-sm text-slate-400 font-medium">
+          <a href="/" class="hover:text-slate-600 transition-colors">Home</a>
+          <i class="ph ph-caret-right text-xs"></i>
+          <a href="/#pdf-tools" class="hover:text-slate-600 transition-colors">PDF Tools</a>
+          <i class="ph ph-caret-right text-xs"></i>
+          <span class="text-slate-700 dark:text-slate-300">Merge PDF</span>
+        </nav>
+      </div>
+
+      <div class="text-center mb-10">
+        <div class="inline-flex py-1.5 px-4 rounded-full text-sm font-bold mb-4 items-center gap-2" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2);">
+          <i class="ph-fill ph-file-pdf"></i> PDF Tool
+        </div>
+        <h1 class="text-4xl md:text-5xl font-black tracking-tight mb-4 text-slate-900 dark:text-white">Merge PDF Files</h1>
+        <p class="text-lg text-slate-500 max-w-2xl mx-auto">Combine multiple PDF documents into one. Drag to reorder before merging.</p>
+      </div>
+
+      <!-- Upload + File List -->
+      <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden mb-10">
+        <div id="drop-zone" class="upload-zone m-6">
+          <input type="file" id="file-input" class="hidden" accept="application/pdf" multiple />
+          <div class="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center mb-6 shadow-md text-white" style="background: linear-gradient(135deg, #ef4444, #f97316);">
+            <i class="ph ph-git-merge text-4xl"></i>
+          </div>
+          <h3 class="text-3xl font-black mb-3 text-slate-900 dark:text-white">Drop PDF files here</h3>
+          <p class="text-slate-500 mb-8">Upload 2 or more PDFs. You can drag to reorder them.</p>
+          <button class="btn-primary pointer-events-none px-10" style="background: linear-gradient(135deg, #ef4444, #f97316);">
+            <i class="ph ph-upload-simple text-xl"></i> Browse PDFs
+          </button>
+        </div>
+
+        <!-- File List -->
+        <div id="file-list-section" class="hidden p-6">
+          <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-4">Files to Merge <span id="file-count" class="text-slate-400 text-base font-normal"></span></h3>
+          <ul id="file-list" class="space-y-3 mb-6"></ul>
+          <div class="flex flex-wrap gap-3">
+            <button id="btn-add-more" class="btn-secondary text-sm px-5 py-2.5"><i class="ph ph-plus"></i> Add More PDFs</button>
+            <button id="btn-merge" class="btn-primary text-sm px-8 py-2.5" style="background: linear-gradient(135deg, #ef4444, #f97316);"><i class="ph ph-git-merge"></i> Merge PDFs</button>
+            <button id="btn-reset" class="btn-secondary text-sm px-5 py-2.5 text-red-500 border-red-200 hover:bg-red-50"><i class="ph ph-trash"></i> Reset</button>
+          </div>
+        </div>
+
+        <!-- Download Result -->
+        <div id="result-zone" class="hidden p-6">
+          <div class="flex flex-col items-center justify-center gap-6 py-8">
+            <div class="w-20 h-20 rounded-full flex items-center justify-center text-white shadow-lg" style="background: linear-gradient(135deg,#10b981,#3cba92);">
+              <i class="ph ph-check text-4xl font-bold"></i>
+            </div>
+            <h3 class="text-2xl font-black text-slate-900 dark:text-white">Merge Complete!</h3>
+            <p id="merge-info" class="text-slate-500"></p>
+            <div class="flex gap-3">
+              <button id="btn-download" class="btn-primary px-10 py-3" style="background: linear-gradient(135deg, #10b981, #3cba92);"><i class="ph ph-download-simple"></i> Download Merged PDF</button>
+              <button id="btn-reset2" class="btn-secondary px-6 py-3"><i class="ph ph-arrow-counter-clockwise"></i> Start Over</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- How it works -->
+      <div class="grid md:grid-cols-3 gap-5 mb-10">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mb-4 text-lg" style="background: linear-gradient(135deg,#ef4444,#f97316);">1</div>
+          <h3 class="font-bold mb-2 text-slate-900 dark:text-white">Upload PDFs</h3>
+          <p class="text-slate-500 text-sm">Select two or more PDF files to combine.</p>
+        </div>
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mb-4 text-lg" style="background: linear-gradient(135deg,#ef4444,#f97316);">2</div>
+          <h3 class="font-bold mb-2 text-slate-900 dark:text-white">Order Files</h3>
+          <p class="text-slate-500 text-sm">Files are merged in the order listed.</p>
+        </div>
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mb-4 text-lg" style="background: linear-gradient(135deg,#ef4444,#f97316);">3</div>
+          <h3 class="font-bold mb-2 text-slate-900 dark:text-white">Download</h3>
+          <p class="text-slate-500 text-sm">Click Merge and download your combined PDF.</p>
+        </div>
+      </div>
+
+      <!-- FAQ -->
+      <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-200 dark:border-slate-700 mb-10">
+        <h2 class="text-2xl font-bold mb-6 text-slate-900 dark:text-white">FAQ</h2>
+        <div class="space-y-5">
+          <div>
+            <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-1">Is there a limit to how many PDFs I can merge?</h3>
+            <p class="text-slate-500 text-sm">No strict limit, but very large files may use significant browser memory.</p>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-1">Are my PDFs uploaded to a server?</h3>
+            <p class="text-slate-500 text-sm">No! All merging happens locally in your browser using pdf-lib.</p>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-1">Will password-protected PDFs work?</h3>
+            <p class="text-slate-500 text-sm">Password-protected PDFs cannot be merged. Please unlock them first.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Related Tools -->
+      <div class="pt-8 border-t border-slate-200 dark:border-slate-800 mb-16">
+        <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Related PDF Tools</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <a href="/pdf-to-text.html" class="saas-card card-pdf p-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0" style="background:linear-gradient(135deg,#ef4444,#f97316);"><i class="ph ph-file-text text-xl"></i></div>
+            <div class="font-bold text-sm text-slate-800 dark:text-slate-200">PDF to Text</div>
+          </a>
+          <a href="/split-pdf.html" class="saas-card card-pdf p-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0" style="background:linear-gradient(135deg,#ef4444,#f97316);"><i class="ph ph-scissors text-xl"></i></div>
+            <div class="font-bold text-sm text-slate-800 dark:text-slate-200">Split PDF</div>
+          </a>
+          <a href="/pdf-to-image.html" class="saas-card card-pdf p-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0" style="background:linear-gradient(135deg,#ef4444,#f97316);"><i class="ph ph-image text-xl"></i></div>
+            <div class="font-bold text-sm text-slate-800 dark:text-slate-200">PDF to Image</div>
+          </a>
+          <a href="/compress-pdf.html" class="saas-card card-pdf p-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0" style="background:linear-gradient(135deg,#ef4444,#f97316);"><i class="ph ph-arrows-in text-xl"></i></div>
+            <div class="font-bold text-sm text-slate-800 dark:text-slate-200">Compress PDF</div>
+          </a>
+        </div>
+      </div>
+    </main>
+
+    <footer class="bg-slate-900 text-slate-400 py-8 text-center text-sm">
+      <p>&copy; 2026 ConvertEra. All rights reserved. | <a href="/" class="hover:text-white transition-colors">Home</a></p>
+    </footer>
+
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script type="module" src="/src/tools/merge-pdf.js"></script>
+  </body>
+</html>
