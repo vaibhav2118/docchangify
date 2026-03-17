@@ -8,8 +8,8 @@
  * doesn't trigger CORS/Security errors in strict mobile environments.
  */
 
-// Local core path (no more CDN issues)
-const FFMPEG_CORE_PATH = window.location.origin + '/ffmpeg/ffmpeg-core.js';
+
+
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 const dropZone          = document.getElementById('drop-zone');
@@ -96,34 +96,54 @@ async function readFileAsArrayBuffer(file) {
   });
 }
 
-// ─── FFmpeg Loader ────────────────────────────────────────────────────────────
+// ─── FFmpeg Loader – Robust Version for Mobile ───────────────────────────────
 async function getFFmpeg() {
   if (ffmpegInstance) return ffmpegInstance;
-  const FFmpegLib = window.FFmpeg;
-  if (!FFmpegLib) throw new Error('FFmpeg library failed to load.');
-
-  if (initStatus) initStatus.textContent = '⚡ Starting local engine...';
   
+  const FFmpegLib = window.FFmpeg;
+  if (!FFmpegLib) {
+    throw new Error('Video toolkit (FFmpeg) not found. Please refresh the page.');
+  }
+
+  // Use absolute URL with cache-busting to force a fresh load
+  const timestamp = Date.now();
+  const corePath = `${window.location.origin}/ffmpeg/ffmpeg-core.js?v=${timestamp}`;
+  
+  if (initStatus) initStatus.textContent = '⚡ Starting local engine...';
+  console.log('[VideoSplitter] Initializing FFmpeg core:', corePath);
+
   const ff = FFmpegLib.createFFmpeg({
-    corePath: FFMPEG_CORE_PATH,
-    log: false,
+    corePath: corePath,
+    log: true, // Internal logs help debug mobile failures
     progress: (p) => {
       if (p.ratio > 0) {
         const pct = Math.min(95, Math.round(p.ratio * 100));
-        setProgress(pct, 'Processing... ' + pct + '%');
+        setProgress(pct, 'Loading processor... ' + pct + '%');
       }
     }
   });
 
-  if (initStatus) initStatus.textContent = '📦 Loading core module...';
+  if (initStatus) initStatus.textContent = '📦 Loading data (25MB)...';
+  console.log('[VideoSplitter] Calling ff.load()...');
+
   try {
     await ff.load();
+    console.log('[VideoSplitter] FFmpeg load successful');
   } catch (e) {
-    console.error('[VideoSplitter] Load error:', e);
-    throw new Error('Could not load FFmpeg core. This might be a memory issue on mobile. Try refreshing or using a smaller video.');
+    console.error('[VideoSplitter] FFmpeg load error:', e);
+    
+    let errorMsg = 'Could not start video processor.\n\n';
+    if (e.message && e.message.includes('fetch')) {
+      errorMsg += 'Network error: Toolkit could not be downloaded.';
+    } else {
+      errorMsg += 'This is likely a memory limit on your mobile. Try closing other tabs or using a smaller video.';
+    }
+    
+    throw new Error(errorMsg);
   }
 
   ffmpegInstance = ff;
+  if (initStatus) initStatus.textContent = '✅ Ready';
   return ff;
 }
 
