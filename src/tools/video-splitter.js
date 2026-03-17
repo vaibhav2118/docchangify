@@ -91,36 +91,42 @@ function log(msg) {
 }
 
 // ─── Error banner ─────────────────────────────────────────────────────────────
-function showError(msg) {
-  document.querySelectorAll('.alert-error').forEach(el => el.remove());
-  const el = document.createElement('div');
-  el.className = 'alert-banner alert-error mt-4';
-  el.innerHTML = `<i class="ph ph-warning-circle text-xl flex-shrink-0"></i><span>${msg}</span>`;
-  configSection.prepend(el);
-  setTimeout(() => el.remove(), 7000);
+function showConfigError(msg) {
+  var area = document.getElementById('error-area');
+  if (!area) return;
+  area.innerHTML = '';
+  var el = document.createElement('div');
+  el.className = 'alert-banner alert-error';
+  el.innerHTML = '<i class="ph ph-warning-circle text-xl flex-shrink-0"></i><span>' + msg + '</span>';
+  area.appendChild(el);
+  setTimeout(function() { if (area) area.innerHTML = ''; }, 7000);
 }
 
 // ─── File upload handling ─────────────────────────────────────────────────────
-browseBtn.addEventListener('click', function(e) {
-  e.stopPropagation();
-  fileInput.click();
-});
-
-dropZone.addEventListener('click', function() {
-  fileInput.click();
-});
+// NOTE: "Browse Video" is a <label for="file-input"> — the browser natively
+// opens the file picker on tap. No JS required for that interaction.
+// This is the correct fix for mobile Chrome where programmatic .click()
+// on a display:none input is silently blocked.
 
 fileInput.addEventListener('change', function() {
-  if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  if (fileInput.files && fileInput.files[0]) handleFile(fileInput.files[0]);
 });
 
-// Drag & drop
+// Clicking the zone OUTSIDE the label also opens the picker (fallback).
+// Input is NOT display:none so .click() works on Android Chrome.
+dropZone.addEventListener('click', function(e) {
+  if (e.target.tagName === 'LABEL' || (e.target.closest && e.target.closest('label')) ||
+      e.target.tagName === 'INPUT') return;
+  fileInput.click();
+});
+
+// Drag & drop (desktop)
 dropZone.addEventListener('dragover', function(e) {
   e.preventDefault();
   dropZone.classList.add('drag-over');
 });
-dropZone.addEventListener('dragleave', function() {
-  dropZone.classList.remove('drag-over');
+dropZone.addEventListener('dragleave', function(e) {
+  if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over');
 });
 dropZone.addEventListener('dragend', function() {
   dropZone.classList.remove('drag-over');
@@ -132,7 +138,7 @@ dropZone.addEventListener('drop', function(e) {
   if (f && (f.type.startsWith('video/') || /\.(mp4|mov|avi|mkv|webm)$/i.test(f.name))) {
     handleFile(f);
   } else {
-    alert('Please drop a valid video file (MP4, MOV, AVI).');
+    showConfigError('Please drop a valid video file (MP4, MOV, AVI).');
   }
 });
 
@@ -255,10 +261,10 @@ btnSplit.addEventListener('click', async function() {
   var durSec = parseFloat(splitDuration.value);
 
   if (!durSec || durSec <= 0) {
-    return showError('Please enter a split duration greater than 0 seconds.');
+    return showConfigError('Please enter a split duration greater than 0 seconds.');
   }
   if (durSec > videoDuration) {
-    return showError(
+    return showConfigError(
       'Split duration (' + durSec + 's) is longer than the video (' + videoDuration.toFixed(1) + 's).'
     );
   }
@@ -298,14 +304,6 @@ btnSplit.addEventListener('click', async function() {
       setProgress(basePct, 'Clip ' + (i + 1) + '/' + clipCount + ': ' + fmtTime(startSec) + ' → ' + fmtTime(endSec));
       log('▶ Clip ' + (i + 1) + '/' + clipCount + ':  ' + startSec.toFixed(2) + 's – ' + endSec.toFixed(2) + 's');
 
-      /**
-       * FFmpeg flags:
-       *  -ss before -i  → fast seek to keyframe (accurate enough for >1s clips)
-       *  -t             → clip duration
-       *  -c copy        → stream copy (no re-encode) → FAST & lossless
-       *  -avoid_negative_ts make_zero → fix PTS so clip starts at 0
-       *  -movflags +faststart → moov atom at start = instant browser playback
-       */
       await ff.run(
         '-ss', String(startSec),
         '-i',  inputName,
@@ -316,9 +314,8 @@ btnSplit.addEventListener('click', async function() {
         outName
       );
 
-      // Read output clip
       var data = ff.FS('readFile', outName);
-      ff.FS('unlink', outName);  // free virtual FS memory
+      ff.FS('unlink', outName);
 
       var blob = new Blob([data.buffer], { type: 'video/mp4' });
       var url  = URL.createObjectURL(blob);
@@ -334,7 +331,6 @@ btnSplit.addEventListener('click', async function() {
       log('   ✓ Clip ' + (i + 1) + ' done — ' + fmtBytes(blob.size));
     }
 
-    // Free input from virtual FS
     ff.FS('unlink', inputName);
 
     outputBlobs = results;
@@ -346,9 +342,11 @@ btnSplit.addEventListener('click', async function() {
     console.error('[VideoSplitter]', err);
     log('\n❌ ERROR: ' + err.message);
     showSection('config');
-    showError('Processing failed: ' + err.message + '. Please try a different video or refresh the page.');
+    showConfigError('Processing failed: ' + err.message + '. Please try a different video or refresh the page.');
   }
 });
+
+
 
 // ─── Render clip result cards ─────────────────────────────────────────────────
 function renderResults(clips, durSec, baseName) {

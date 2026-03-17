@@ -228,9 +228,18 @@
         <!-- STEP 1: Upload Zone -->
         <div id="upload-section">
           <div id="drop-zone" class="upload-zone m-6 group cursor-pointer">
-            <!-- Mobile: accept="video/*" allows camera + gallery on mobile devices -->
-            <input type="file" id="file-input" class="hidden"
-              accept="video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm,video/*" />
+            <!--
+              FILE INPUT: sr-only hides it visually but keeps it in the DOM
+              (not display:none which blocks programmatic .click() on mobile Chrome).
+              accept="video/*" is the single attribute mobile Chrome/Safari need
+              to show the video picker / gallery / camera roll.
+            -->
+            <input
+              type="file"
+              id="file-input"
+              accept="video/*"
+              style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;"
+            />
             <div class="w-20 h-20 mx-auto rounded-2xl bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 flex items-center justify-center mb-6 shadow-sm border border-violet-100 dark:border-violet-800/50 group-hover:scale-110 group-hover:shadow-md transition-all">
               <i class="ph ph-film-strip text-4xl"></i>
             </div>
@@ -241,9 +250,19 @@
               Supports <strong>MP4</strong>, <strong>MOV</strong>, and <strong>AVI</strong> files. Processing happens locally on your device.
             </p>
             <p class="text-xs text-slate-400 dark:text-slate-500 mb-8">Powered by FFmpeg.wasm — no internet needed after first load</p>
-            <button id="browse-btn" class="btn-primary" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">
+            <!--
+              LABEL not BUTTON: clicking a <label for="file-input"> natively opens
+              the file picker on ALL browsers including mobile Chrome/Safari/Firefox.
+              No JavaScript needed for this click — the browser handles it.
+            -->
+            <label
+              for="file-input"
+              id="browse-btn"
+              class="btn-primary"
+              style="background:linear-gradient(135deg,#7c3aed,#4f46e5);cursor:pointer;display:inline-flex;align-items:center;gap:8px;"
+            >
               <i class="ph ph-upload-simple text-lg"></i> Browse Video
-            </button>
+            </label>
           </div>
         </div>
 
