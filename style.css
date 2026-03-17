@@ -395,3 +395,25 @@ body.dark {
 .dark input::placeholder {
   color: #64748b !important;
 }
+
+/* =============================
+   VIDEO TOOLS SECTION (dark mode)
+   ============================= */
+/* The video section uses inline style for bg; this handles dark override */
+.dark #video-tools {
+  background: rgba(10, 10, 10, 0.7) !important;
+  border-color: #222222 !important;
+}
+.dark #video-tools:hover {
+  background: rgba(15, 15, 15, 0.9) !important;
+  border-color: rgba(124, 58, 237, 0.3) !important;
+  box-shadow: 0 0 40px rgba(124,58,237,0.08) inset;
+}
+/* Video card border accent */
+.card-video { border-left: 4px solid #7c3aed; }
+
+/* Spin utility for zip button loading state */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+

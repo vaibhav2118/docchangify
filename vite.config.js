@@ -6,6 +6,13 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
   ],
+  server: {
+    headers: {
+      // Required for SharedArrayBuffer (FFmpeg.wasm, WebAssembly threads)
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
+  },
   build: {
     outDir: 'dist',
     rollupOptions: {
@@ -38,8 +45,10 @@ export default defineConfig({
         markdownEditor: resolve(__dirname, 'markdown-editor.html'),
         richTextEditor: resolve(__dirname, 'rich-text-editor.html'),
         imageEditor: resolve(__dirname, 'image-editor.html'),
-        tools: resolve(__dirname, 'tools.html')
+        tools: resolve(__dirname, 'tools.html'),
+        videoSplitter: resolve(__dirname, 'video-splitter.html'),
       }
     }
   }
 })
+

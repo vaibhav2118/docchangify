@@ -43,6 +43,7 @@
               <a href="#image-tools" class="text-sm font-bold text-slate-500 hover:text-orange-500 dark:text-slate-400 dark:hover:text-orange-400 transition-colors">🖼 Image</a>
               <a href="#image-edit-tools" class="text-sm font-bold text-slate-500 hover:text-orange-400 dark:text-slate-400 dark:hover:text-orange-300 transition-colors">✂️ Edit</a>
               <a href="#pdf-tools" class="text-sm font-bold text-slate-500 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400 transition-colors">📄 PDF</a>
+              <a href="#video-tools" class="text-sm font-bold text-slate-500 hover:text-violet-500 dark:text-slate-400 dark:hover:text-violet-400 transition-colors">🎬 Video</a>
               <a href="#developer-tools" class="text-sm font-bold text-slate-500 hover:text-indigo-500 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors">💻 Developer</a>
               <a href="#text-tools" class="text-sm font-bold text-slate-500 hover:text-emerald-500 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors">📝 Text</a>
             </nav>
@@ -102,6 +103,9 @@
             </div>
             <div class="flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-slate-800/80 rounded-full shadow-sm border border-indigo-200 dark:border-indigo-900/40 text-sm font-bold text-indigo-600 dark:text-indigo-400">
               <i class="ph ph-code text-lg"></i> 3 Dev Tools
+            </div>
+            <div class="flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-slate-800/80 rounded-full shadow-sm border border-violet-200 dark:border-violet-900/40 text-sm font-bold text-violet-600 dark:text-violet-400">
+              <i class="ph ph-film-strip text-lg"></i> 1 Video Tool
             </div>
             <div class="flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-slate-800/80 rounded-full shadow-sm border border-emerald-200 dark:border-emerald-900/40 text-sm font-bold text-emerald-600 dark:text-emerald-400">
               <i class="ph ph-text-aa text-lg"></i> 3 Text Tools
@@ -273,6 +277,31 @@
           </div>
         </div>
 
+        <!-- ===== VIDEO TOOLS ===== -->
+        <div id="video-tools" class="tool-category scroll-mt-24" style="background:linear-gradient(100deg,#f5f3ff 0%,#eef2ff 100%);border-radius:24px;padding:32px;border:1px solid #ddd6fe;">
+          <div class="flex items-center gap-3 mb-8">
+            <div class="p-3 rounded-2xl shadow-lg" style="background:linear-gradient(135deg,#7c3aed 0%,#4f46e5 60%,#06b6d4 100%);color:white;">
+              <i class="ph ph-film-strip text-2xl"></i>
+            </div>
+            <div>
+              <h2 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Video Tools</h2>
+              <p class="text-sm font-semibold" style="color:#7c3aed;">Split, trim, and process videos locally</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 items-grid">
+
+            <div class="saas-card flex flex-col p-6" style="border-left:4px solid #7c3aed;">
+              <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 shadow-md" style="background:linear-gradient(135deg,#7c3aed 0%,#4f46e5 60%,#06b6d4 100%);color:white;">
+                <i class="ph ph-scissors text-3xl"></i>
+              </div>
+              <h3 class="text-lg font-bold mb-2 text-slate-900 dark:text-white tool-title">Video Splitter</h3>
+              <p class="text-sm text-slate-500 dark:text-slate-400 mb-6 flex-grow tool-desc leading-relaxed">Automatically split any video into equal-duration clips. No upload, 100% local.</p>
+              <a href="/video-splitter.html" class="btn-open-tool">Open Tool →</a>
+            </div>
+
+          </div>
+        </div>
+
         <!-- ===== DEVELOPER TOOLS ===== -->
         <div id="developer-tools" class="tool-category scroll-mt-24 section-band-dev">
           <div class="flex items-center gap-3 mb-8">
@@ -387,6 +416,7 @@
             <ul class="space-y-3 text-sm">
               <li><a href="#image-tools" class="hover:text-orange-400 transition-colors">🖼️ Image Tools</a></li>
               <li><a href="#pdf-tools" class="hover:text-red-400 transition-colors">📄 PDF Tools</a></li>
+              <li><a href="#video-tools" class="hover:text-violet-400 transition-colors">🎬 Video Tools</a></li>
               <li><a href="#developer-tools" class="hover:text-indigo-400 transition-colors">💻 Developer Tools</a></li>
               <li><a href="#text-tools" class="hover:text-emerald-400 transition-colors">📝 Text Tools</a></li>
             </ul>
