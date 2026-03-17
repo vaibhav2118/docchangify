@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -11,10 +11,9 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://docchangify.in/video-splitter" />
 
-    <!-- coi-serviceworker: enables SharedArrayBuffer (needed by FFmpeg.wasm) -->
+    <!-- coi-serviceworker: enables SharedArrayBuffer for FFmpeg.wasm (must be same-origin) -->
     <script src="/coi-serviceworker.js"></script>
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script type="module" src="/src/main.js"></script>
     <link rel="stylesheet" href="/style.css" />
@@ -29,27 +28,16 @@
     </script>
 
     <style>
-      /* ── Video accent colour ── */
-      .icon-video {
-        background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 60%, #06b6d4 100%);
-        color: #fff;
-      }
+      /* ── Video Splitter local styles ─────────────────────────────── */
 
-      /* ── Upload zone drag state ── */
-      .upload-zone.drag-over {
-        border-color: #7c3aed !important;
-        background: rgba(124,58,237,0.06) !important;
-        box-shadow: 0 0 0 4px rgba(124,58,237,0.12);
-      }
-
-      /* ── Progress bar ── */
+      /* Progress bar */
       .progress-track {
         height: 8px;
         background: #e2e8f0;
         border-radius: 99px;
         overflow: hidden;
       }
-      .dark .progress-track { background: #334155; }
+      .dark .progress-track { background: #1e293b; }
       .progress-fill {
         height: 100%;
         background: linear-gradient(90deg, #7c3aed, #4f46e5, #06b6d4);
@@ -58,142 +46,148 @@
         width: 0%;
       }
 
-      /* ── Log panel ── */
+      /* Clip card grid */
+      .clip-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 18px;
+      }
+      .clip-card {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1.5px solid #e7eaf3;
+        background: #ffffff;
+        transition: box-shadow 0.2s, transform 0.2s;
+        box-shadow: 0 2px 10px rgba(80,100,200,0.07);
+      }
+      .clip-card:hover { box-shadow: 0 8px 30px rgba(99,102,241,0.18); transform: translateY(-3px); }
+      .dark .clip-card { background: #1e293b; border-color: #334155; }
+      .clip-card video { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; background: #000; }
+      .clip-card-body { padding: 14px 16px; }
+      .clip-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-size: 0.75rem; font-weight: 700; padding: 3px 10px;
+        border-radius: 99px;
+        background: rgba(124,58,237,0.1); color: #7c3aed;
+        border: 1px solid rgba(124,58,237,0.2); margin-bottom: 8px;
+      }
+      .dark .clip-badge { background: rgba(124,58,237,0.2); color: #a78bfa; }
+      .clip-title { font-size: 0.85rem; font-weight: 700; color: #1e293b; margin-bottom: 4px; word-break: break-all; }
+      .dark .clip-title { color: #f1f5f9; }
+      .clip-time { font-size: 0.75rem; color: #64748b; font-family: monospace; }
+      .dark .clip-time { color: #94a3b8; }
+      .clip-download-btn {
+        display: flex; align-items: center; justify-content: center; gap: 6px;
+        width: 100%; margin-top: 10px; padding: 9px 14px;
+        border-radius: 10px; font-size: 0.82rem; font-weight: 700;
+        background: linear-gradient(135deg, #7c3aed, #4f46e5);
+        color: white; text-decoration: none; cursor: pointer;
+        box-shadow: 0 3px 10px rgba(124,58,237,0.25);
+        transition: filter 0.2s, transform 0.2s;
+      }
+      .clip-download-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+      /* Log panel */
       .log-panel {
         font-family: 'SF Mono', 'Fira Code', monospace;
-        font-size: 0.76rem;
+        font-size: 0.75rem;
         background: #0f172a;
         color: #7dd3fc;
         border-radius: 10px;
         padding: 12px 16px;
         max-height: 130px;
         overflow-y: auto;
-        line-height: 1.8;
-        white-space: pre-wrap;
-        word-break: break-all;
+        line-height: 1.7;
+        text-align: left;
       }
       .log-panel:empty { display: none; }
 
-      /* ── Animated loading dots ── */
+      /* Animated dots */
       @keyframes dot-pulse {
         0%, 80%, 100% { opacity: 0.25; transform: scale(0.8); }
-        40%            { opacity: 1;    transform: scale(1);   }
+        40%            { opacity: 1;    transform: scale(1); }
       }
-      .dot {
-        display: inline-block; width: 9px; height: 9px;
-        border-radius: 50%; background: #7c3aed; margin: 0 3px;
-      }
+      .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #7c3aed; margin: 0 3px; }
       .dot:nth-child(1) { animation: dot-pulse 1.2s 0.0s infinite; }
       .dot:nth-child(2) { animation: dot-pulse 1.2s 0.2s infinite; }
       .dot:nth-child(3) { animation: dot-pulse 1.2s 0.4s infinite; }
 
-      /* ── Clip grid ── */
-      .clip-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-        gap: 16px;
-      }
-      @media (max-width: 480px) {
-        .clip-grid { grid-template-columns: 1fr; }
-      }
-
-      /* ── Clip card ── */
-      .clip-card {
-        background: #fff;
-        border: 1.5px solid #e2e8f0;
-        border-radius: 14px;
-        overflow: hidden;
-        transition: box-shadow 0.2s, transform 0.2s;
-      }
-      .clip-card:hover { box-shadow: 0 8px 28px rgba(99,102,241,0.16); transform: translateY(-2px); }
-      .dark .clip-card { background: #1e293b; border-color: #334155; }
-      .clip-card video { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; background: #000; }
-      .clip-card-body  { padding: 12px 14px; }
-
-      .clip-badge {
-        display: inline-flex; align-items: center; gap: 5px;
-        font-size: 0.72rem; font-weight: 700;
-        padding: 3px 10px; border-radius: 99px; margin-bottom: 8px;
-        background: rgba(124,58,237,0.1); color: #7c3aed;
-        border: 1px solid rgba(124,58,237,0.22);
-      }
-      .dark .clip-badge { background: rgba(124,58,237,0.18); color: #a78bfa; border-color: rgba(124,58,237,0.35); }
-
-      .clip-title { font-size: 0.85rem; font-weight: 700; color: #1e293b; margin-bottom: 2px; word-break: break-all; }
-      .dark .clip-title { color: #f1f5f9; }
-      .clip-time  { font-size: 0.75rem; color: #64748b; font-family: monospace; }
-      .dark .clip-time { color: #94a3b8; }
-
-      .clip-dl-btn {
-        display: flex; align-items: center; justify-content: center; gap: 6px;
-        width: 100%; margin-top: 10px; padding: 8px 14px;
-        border-radius: 8px; font-size: 0.8rem; font-weight: 700;
-        background: linear-gradient(135deg, #7c3aed, #4f46e5);
-        color: #fff; text-decoration: none; border: none; cursor: pointer;
-        transition: filter 0.2s, transform 0.2s;
-        box-shadow: 0 2px 10px rgba(124,58,237,0.28);
-      }
-      .clip-dl-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
-
-      /* ── ZIP button ── */
+      /* ZIP button */
       .btn-zip {
         display: inline-flex; align-items: center; gap: 8px;
-        padding: 11px 22px; border-radius: 10px;
+        padding: 12px 24px; border-radius: 12px;
         font-weight: 700; font-size: 0.9rem;
         background: linear-gradient(135deg, #0ba360, #3cba92);
-        color: #fff; border: none; cursor: pointer;
+        color: white; border: none; cursor: pointer;
         transition: filter 0.2s, transform 0.2s;
-        box-shadow: 0 3px 14px rgba(11,163,96,0.28);
+        box-shadow: 0 4px 16px rgba(11,163,96,0.28);
+        text-decoration: none;
       }
       .btn-zip:hover { filter: brightness(1.08); transform: translateY(-2px); }
+      .btn-zip:disabled { opacity: 0.6; cursor: not-allowed; }
 
-      /* ── Alert banner ── */
+      /* Spin */
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* Alert */
       .alert-banner {
         display: flex; align-items: flex-start; gap: 10px;
-        padding: 12px 16px; border-radius: 10px;
-        font-size: 0.85rem; font-weight: 600; margin-bottom: 12px;
+        padding: 12px 16px; border-radius: 12px;
+        font-size: 0.875rem; font-weight: 500;
+        margin-bottom: 16px;
       }
       .alert-error { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.25); }
 
-      /* ── Preset button active ── */
-      .preset-btn.active {
-        border-color: #7c3aed !important;
-        color: #7c3aed !important;
-        background: rgba(124,58,237,0.09) !important;
+      /* Preset buttons */
+      .preset-btn {
+        padding: 8px 16px; border-radius: 10px; border: 1.5px solid #e2e8f0;
+        font-size: 0.85rem; font-weight: 700; cursor: pointer;
+        background: #ffffff; color: #475569;
+        transition: border-color 0.15s, color 0.15s, background 0.15s;
+        min-width: 48px; min-height: 44px; /* touch-friendly */
       }
+      .preset-btn:hover { border-color: #7c3aed; color: #7c3aed; }
+      .dark .preset-btn { background: #1e293b; border-color: #334155; color: #94a3b8; }
+      .dark .preset-btn:hover { border-color: #7c3aed; color: #a78bfa; }
 
-      /* ── Spin ── */
-      @keyframes spin { to { transform: rotate(360deg); } }
+      /* Duration input */
+      #split-duration {
+        width: 90px; padding: 10px 12px; border-radius: 10px;
+        border: 1.5px solid #e2e8f0; background: #ffffff;
+        color: #0f172a; font-size: 1.25rem; font-weight: 700;
+        text-align: center; outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+        min-height: 44px; /* touch-friendly */
+      }
+      #split-duration:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.15); }
+      .dark #split-duration { background: #0f172a; border-color: #334155; color: #f1f5f9; }
 
-      /* ── Focus ring for duration input ── */
-      #split-duration:focus {
-        outline: none;
-        border-color: #7c3aed !important;
-        box-shadow: 0 0 0 3px rgba(124,58,237,0.18);
+      /* Mobile: make browse button full-width on small screens */
+      @media (max-width: 480px) {
+        .clip-grid { grid-template-columns: 1fr; }
+        .btn-zip { width: 100%; justify-content: center; }
       }
     </style>
   </head>
 
-  <body class="min-h-screen flex flex-col antialiased transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
+  <body class="bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-slate-900 dark:text-slate-100 font-sans min-h-screen flex flex-col antialiased">
 
-    <!-- ===== HEADER ===== -->
-    <header class="sticky top-0 z-50 glass dark:bg-slate-900/80 border-b border-white/30 dark:border-slate-800 shadow-sm backdrop-blur-xl">
-      <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-[70px]">
-        <a href="/" class="flex items-center gap-2.5">
-          <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg"
-               style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 60%, #ec4899 100%);">
-            <i class="ph ph-magic-wand text-xl"></i>
-          </div>
-          <span class="text-xl font-extrabold"
-                style="background: linear-gradient(135deg, #6366f1, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-            DocChangify
-          </span>
-        </a>
-        <button id="theme-toggle"
-                class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-          <i class="ph ph-moon text-lg block dark:hidden"></i>
-          <i class="ph ph-sun text-lg hidden dark:block text-yellow-400"></i>
-        </button>
+    <!-- ===== HEADER (same as png-to-jpg) ===== -->
+    <header class="sticky top-0 z-50 glass dark:glass border-b border-white/20 dark:border-white/5 backdrop-blur-md shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+          <a href="/" class="flex items-center gap-2 group">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 group-hover:scale-105 transition-transform">
+              <i class="ph ph-magic-wand text-2xl"></i>
+            </div>
+            <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
+              DocChangify
+            </span>
+          </a>
+          <button id="theme-toggle" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors focus:outline-none" aria-label="Toggle Dark Mode">
+            <i class="ph ph-moon text-xl block dark:hidden"></i>
+            <i class="ph ph-sun text-xl hidden dark:block text-yellow-400"></i>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -201,12 +195,12 @@
     <main class="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full fade-in">
 
       <!-- Breadcrumb -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
-        <a href="/" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <a href="/" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-violet-600 transition-colors">
           <i class="ph ph-arrow-left text-lg"></i> Back to Tools
         </a>
-        <nav class="flex items-center gap-2 text-sm text-slate-400 font-medium flex-wrap">
-          <a href="/"           class="hover:text-slate-600 dark:hover:text-slate-200 transition-colors">Home</a>
+        <nav class="flex items-center gap-2 text-sm text-slate-400 font-medium">
+          <a href="/" class="hover:text-slate-600 dark:hover:text-slate-200 transition-colors">Home</a>
           <i class="ph ph-caret-right text-xs"></i>
           <a href="/#video-tools" class="hover:text-slate-600 dark:hover:text-slate-200 transition-colors">Video Tools</a>
           <i class="ph ph-caret-right text-xs"></i>
@@ -216,14 +210,14 @@
 
       <!-- Hero -->
       <div class="text-center mb-10">
-        <div class="inline-flex py-1.5 px-4 rounded-full text-sm font-bold mb-4 items-center gap-2"
-             style="background: rgba(124,58,237,0.1); color: #7c3aed; border: 1px solid rgba(124,58,237,0.25);">
+        <div class="inline-flex py-1 px-3 rounded-full text-sm font-semibold mb-4 items-center gap-2"
+          style="background:rgba(124,58,237,0.1);color:#7c3aed;border:1px solid rgba(124,58,237,0.25);">
           <i class="ph-fill ph-video"></i> Video Tool &nbsp;·&nbsp; <i class="ph-fill ph-shield-check"></i> Local Processing
         </div>
-        <h1 class="text-4xl md:text-5xl font-black tracking-tight mb-4 text-slate-900 dark:text-white">
+        <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-slate-900 dark:text-white">
           Video Splitter
         </h1>
-        <p class="text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
+        <p class="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
           Automatically split any video into equal-duration clips. Runs entirely in your browser — no uploads, no servers, completely private.
         </p>
       </div>
@@ -231,62 +225,64 @@
       <!-- ===== TOOL CARD ===== -->
       <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden mb-10">
 
-        <!-- STEP 1: Upload -->
+        <!-- STEP 1: Upload Zone -->
         <div id="upload-section">
-          <div id="drop-zone" class="upload-zone m-4 sm:m-6">
-            <input type="file" id="file-input" class="hidden" accept="video/mp4,video/quicktime,video/x-msvideo,video/*" />
-            <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-2xl icon-video flex items-center justify-center mb-5 shadow-lg">
-              <i class="ph ph-film-strip text-3xl sm:text-4xl"></i>
+          <div id="drop-zone" class="upload-zone m-6 group cursor-pointer">
+            <!-- Mobile: accept="video/*" allows camera + gallery on mobile devices -->
+            <input type="file" id="file-input" class="hidden"
+              accept="video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm,video/*" />
+            <div class="w-20 h-20 mx-auto rounded-2xl bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 flex items-center justify-center mb-6 shadow-sm border border-violet-100 dark:border-violet-800/50 group-hover:scale-110 group-hover:shadow-md transition-all">
+              <i class="ph ph-film-strip text-4xl"></i>
             </div>
-            <h3 class="text-2xl sm:text-3xl font-black mb-3 text-slate-900 dark:text-white">Drop your video here</h3>
-            <p class="text-slate-500 dark:text-slate-400 mb-2 max-w-sm mx-auto text-sm sm:text-base">
+            <h3 class="text-2xl sm:text-3xl font-bold mb-3 text-slate-900 dark:text-white">
+              Drop your video here
+            </h3>
+            <p class="text-slate-500 dark:text-slate-400 mb-2 max-w-md mx-auto">
               Supports <strong>MP4</strong>, <strong>MOV</strong>, and <strong>AVI</strong> files. Processing happens locally on your device.
             </p>
-            <p class="text-xs text-slate-400 dark:text-slate-500 mb-7">Powered by FFmpeg.wasm — no internet needed after first load</p>
-            <button id="browse-btn" class="btn-primary" style="background: linear-gradient(135deg,#7c3aed,#4f46e5);">
+            <p class="text-xs text-slate-400 dark:text-slate-500 mb-8">Powered by FFmpeg.wasm — no internet needed after first load</p>
+            <button id="browse-btn" class="btn-primary" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">
               <i class="ph ph-upload-simple text-lg"></i> Browse Video
             </button>
           </div>
         </div>
 
-        <!-- STEP 2: Configure -->
+        <!-- STEP 2: Configure & Split -->
         <div id="config-section" class="hidden p-4 sm:p-6">
+          <!-- Error banner area -->
+          <div id="error-area"></div>
 
           <!-- File info bar -->
-          <div class="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl bg-violet-50 dark:bg-slate-700/60 border border-violet-200 dark:border-slate-600 mb-5">
-            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl icon-video flex items-center justify-center flex-shrink-0 shadow">
+          <div class="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800/50 mb-6">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-violet-600 flex items-center justify-center flex-shrink-0 shadow text-white">
               <i class="ph ph-film-strip text-xl sm:text-2xl"></i>
             </div>
             <div class="flex-grow min-w-0">
               <p id="file-name" class="font-bold text-slate-900 dark:text-white truncate text-sm"></p>
-              <div class="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-slate-500 dark:text-slate-400 mt-1">
-                <span id="file-size"     class="flex items-center gap-1"><i class="ph ph-hard-drive"></i> --</span>
+              <div class="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <span id="file-size" class="flex items-center gap-1"><i class="ph ph-hard-drive"></i> --</span>
                 <span id="file-duration" class="flex items-center gap-1"><i class="ph ph-clock"></i> --</span>
               </div>
             </div>
-            <button id="change-file-btn" class="flex-shrink-0 text-xs font-bold text-violet-600 dark:text-violet-400 hover:underline px-1">
+            <button id="change-file-btn" class="flex-shrink-0 text-xs font-bold text-violet-600 dark:text-violet-400 hover:underline px-2 py-1">
               Change
             </button>
           </div>
 
-          <!-- Duration picker -->
-          <div class="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 sm:p-5 mb-5 border border-slate-200 dark:border-slate-600">
+          <!-- Duration Input -->
+          <div class="bg-slate-50 dark:bg-slate-700/50 rounded-2xl p-4 sm:p-5 mb-6 border border-slate-200 dark:border-slate-600">
             <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
               <i class="ph ph-timer text-violet-600 dark:text-violet-400"></i> Split Duration (seconds)
             </label>
             <div class="flex flex-wrap items-center gap-3">
-              <input
-                type="number"
-                id="split-duration"
-                min="1" max="3600" value="10"
-                class="w-28 sm:w-32 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-lg sm:text-xl text-center transition-all"
-              />
+              <input type="number" id="split-duration" min="1" max="3600" value="10"
+                inputmode="numeric" placeholder="Seconds" />
               <div class="flex flex-wrap gap-2">
-                <button class="preset-btn px-3 sm:px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-bold text-slate-600 dark:text-slate-300 hover:border-violet-500 hover:text-violet-600 dark:hover:text-violet-400 transition-all bg-white dark:bg-slate-800" data-seconds="5">5s</button>
-                <button class="preset-btn px-3 sm:px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-bold text-slate-600 dark:text-slate-300 hover:border-violet-500 hover:text-violet-600 dark:hover:text-violet-400 transition-all bg-white dark:bg-slate-800" data-seconds="10">10s</button>
-                <button class="preset-btn px-3 sm:px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-bold text-slate-600 dark:text-slate-300 hover:border-violet-500 hover:text-violet-600 dark:hover:text-violet-400 transition-all bg-white dark:bg-slate-800" data-seconds="15">15s</button>
-                <button class="preset-btn px-3 sm:px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-bold text-slate-600 dark:text-slate-300 hover:border-violet-500 hover:text-violet-600 dark:hover:text-violet-400 transition-all bg-white dark:bg-slate-800" data-seconds="30">30s</button>
-                <button class="preset-btn px-3 sm:px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-bold text-slate-600 dark:text-slate-300 hover:border-violet-500 hover:text-violet-600 dark:hover:text-violet-400 transition-all bg-white dark:bg-slate-800" data-seconds="60">60s</button>
+                <button class="preset-btn" data-seconds="5">5s</button>
+                <button class="preset-btn" data-seconds="10">10s</button>
+                <button class="preset-btn" data-seconds="15">15s</button>
+                <button class="preset-btn" data-seconds="30">30s</button>
+                <button class="preset-btn" data-seconds="60">60s</button>
               </div>
             </div>
             <p id="clip-count-preview" class="mt-3 text-sm text-violet-700 dark:text-violet-300 font-semibold hidden"></p>
@@ -294,10 +290,10 @@
 
           <!-- Actions -->
           <div class="flex flex-wrap gap-3">
-            <button id="btn-split" class="btn-primary px-6 sm:px-10 py-3" style="background: linear-gradient(135deg,#7c3aed,#4f46e5);">
+            <button id="btn-split" class="btn-primary px-8 py-3 sm:px-10" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">
               <i class="ph ph-scissors text-lg"></i> Split Video
             </button>
-            <button id="btn-reset" class="btn-secondary px-5 py-3">
+            <button id="btn-reset" class="btn-secondary px-6 py-3">
               <i class="ph ph-arrow-counter-clockwise"></i> Reset
             </button>
           </div>
@@ -305,14 +301,12 @@
 
         <!-- STEP 3: Processing -->
         <div id="processing-section" class="hidden p-4 sm:p-6">
-          <div class="text-center py-6">
-            <div class="flex justify-center items-center gap-1 mb-6">
+          <div class="text-center py-8">
+            <div class="flex justify-center gap-1 mb-6">
               <span class="dot"></span><span class="dot"></span><span class="dot"></span>
             </div>
-            <h3 class="text-xl font-black text-slate-900 dark:text-white mb-1">Splitting Your Video</h3>
-            <p class="text-slate-500 dark:text-slate-400 text-sm mb-6">
-              FFmpeg is processing your video locally — please keep this tab open.
-            </p>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Splitting Your Video</h3>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mb-6">Please wait — FFmpeg is processing your video locally...</p>
             <div class="max-w-md mx-auto">
               <div class="flex justify-between text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">
                 <span id="progress-label">Initializing...</span>
@@ -321,27 +315,26 @@
               <div class="progress-track mb-4">
                 <div class="progress-fill" id="progress-bar"></div>
               </div>
-              <div id="log-panel" class="log-panel text-left"></div>
+              <div id="log-panel" class="log-panel"></div>
             </div>
           </div>
         </div>
 
         <!-- STEP 4: Results -->
         <div id="result-section" class="hidden p-4 sm:p-6">
-          <!-- Header row -->
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white shadow-lg flex-shrink-0"
-                   style="background: linear-gradient(135deg,#10b981,#3cba92);">
-                <i class="ph ph-check text-xl sm:text-2xl"></i>
+              <div class="w-11 h-11 rounded-full flex items-center justify-center text-white shadow-lg flex-shrink-0"
+                style="background:linear-gradient(135deg,#10b981,#3cba92);">
+                <i class="ph ph-check text-xl"></i>
               </div>
               <div>
-                <h3 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white">Split Complete!</h3>
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Split Complete!</h3>
                 <p id="result-summary" class="text-sm text-slate-500 dark:text-slate-400"></p>
               </div>
             </div>
-            <div class="flex flex-wrap gap-3">
-              <button id="btn-download-zip" class="btn-zip">
+            <div class="flex flex-wrap gap-3 w-full sm:w-auto">
+              <button id="btn-download-zip" class="btn-zip flex-1 sm:flex-initial">
                 <i class="ph ph-file-zip text-lg"></i> Download All as ZIP
               </button>
               <button id="btn-start-over" class="btn-secondary px-4 py-2.5 text-sm">
@@ -349,7 +342,6 @@
               </button>
             </div>
           </div>
-          <!-- Clips grid -->
           <div id="clips-grid" class="clip-grid"></div>
         </div>
 
@@ -358,19 +350,19 @@
       <!-- How it works -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mb-10">
         <div class="bg-white dark:bg-slate-800 p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
-          <div class="w-10 h-10 rounded-full icon-video flex items-center justify-center text-white font-black mb-4 text-lg shadow-md">1</div>
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-black mb-4 text-lg shadow-md" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">1</div>
           <h3 class="font-bold mb-2 text-slate-900 dark:text-white">Upload Video</h3>
-          <p class="text-slate-500 dark:text-slate-400 text-sm">Drop or browse an MP4, MOV, or AVI file. Nothing leaves your device.</p>
+          <p class="text-slate-500 dark:text-slate-400 text-sm">Drop or browse an MP4, MOV, or AVI file. On mobile, tap to select from your gallery or camera. Nothing leaves your device.</p>
         </div>
         <div class="bg-white dark:bg-slate-800 p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
-          <div class="w-10 h-10 rounded-full icon-video flex items-center justify-center text-white font-black mb-4 text-lg shadow-md">2</div>
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-black mb-4 text-lg shadow-md" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">2</div>
           <h3 class="font-bold mb-2 text-slate-900 dark:text-white">Set Duration</h3>
           <p class="text-slate-500 dark:text-slate-400 text-sm">Enter how many seconds each clip should be. The last clip keeps any remainder.</p>
         </div>
         <div class="bg-white dark:bg-slate-800 p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
-          <div class="w-10 h-10 rounded-full icon-video flex items-center justify-center text-white font-black mb-4 text-lg shadow-md">3</div>
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-black mb-4 text-lg shadow-md" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">3</div>
           <h3 class="font-bold mb-2 text-slate-900 dark:text-white">Preview & Download</h3>
-          <p class="text-slate-500 dark:text-slate-400 text-sm">Preview each clip in the browser, download individually or all as a ZIP.</p>
+          <p class="text-slate-500 dark:text-slate-400 text-sm">Preview each clip in the browser and download individually or as a ZIP archive.</p>
         </div>
       </div>
 
@@ -378,21 +370,21 @@
       <section class="prose dark:prose-invert max-w-none mt-10 mb-16 mx-auto w-full">
         <h2 class="text-2xl font-bold mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">How to Split a Video into Equal Segments</h2>
         <ol class="list-decimal pl-6 space-y-2 mb-8 text-slate-700 dark:text-slate-300">
-          <li>Click <strong>Browse Video</strong> or drag and drop your MP4, MOV, or AVI file into the upload area.</li>
+          <li>Click <strong>Browse Video</strong> or drag and drop your MP4, MOV, or AVI file. On mobile, tap to select from your gallery.</li>
           <li>Enter a <strong>split duration in seconds</strong> (e.g., 10 for 10-second clips), or pick a preset.</li>
-          <li>Click <strong>Split Video</strong>. FFmpeg.wasm will process the file locally in your browser.</li>
-          <li><strong>Preview</strong> each generated clip, then download individually or all clips as a ZIP file.</li>
+          <li>Click <strong>Split Video</strong>. FFmpeg.wasm processes the file locally in your browser.</li>
+          <li><strong>Preview</strong> each generated clip, then download individually or all as a ZIP file.</li>
         </ol>
 
         <h2 class="text-2xl font-bold mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">Features</h2>
         <ul class="list-disc pl-6 space-y-2 mb-8 text-slate-700 dark:text-slate-300">
           <li><strong>Powered by FFmpeg.wasm:</strong> Industry-standard video processing, right in your browser.</li>
-          <li><strong>Equal Segment Splitting:</strong> Clips are auto-calculated; any remainder becomes the final clip.</li>
+          <li><strong>Equal Segment Splitting:</strong> Clips are auto-calculated from the start; any remainder becomes the final clip.</li>
+          <li><strong>Mobile Friendly:</strong> Works on phones and tablets — select videos from your camera roll or gallery.</li>
           <li><strong>Multiple Formats:</strong> Supports MP4, MOV, and AVI input files.</li>
           <li><strong>In-Browser Preview:</strong> Watch each segment before downloading.</li>
           <li><strong>ZIP Download:</strong> Get all clips bundled into a single ZIP file.</li>
           <li><strong>100% Private:</strong> No file ever leaves your computer — zero server uploads.</li>
-          <li><strong>Works Offline:</strong> After the initial FFmpeg.wasm library load, no internet is needed.</li>
         </ul>
 
         <div class="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm mt-8">
@@ -407,8 +399,8 @@
               <p class="text-slate-600 dark:text-slate-400 text-sm">The last clip will contain the remaining footage — for example, if your video is 23 seconds and you split every 5 seconds, the 5th clip will be 3 seconds long.</p>
             </div>
             <div>
-              <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">What video formats are supported?</h3>
-              <p class="text-slate-600 dark:text-slate-400 text-sm">MP4, MOV, and AVI are officially supported. Output clips are always saved as MP4 (H.264) for maximum compatibility.</p>
+              <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">Does it work on mobile?</h3>
+              <p class="text-slate-600 dark:text-slate-400 text-sm">Yes! Tap the "Browse Video" button on your phone or tablet and select a video from your gallery. All processing happens on your device.</p>
             </div>
             <div>
               <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">Why does the first load take a moment?</h3>
@@ -419,22 +411,22 @@
       </section>
 
       <!-- Related Tools -->
-      <div class="pt-8 border-t border-slate-200 dark:border-slate-800 mb-16">
+      <div class="pt-8 border-t border-slate-200 dark:border-slate-700 mb-16">
         <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Related Tools</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <a href="/image-compressor.html" class="saas-card card-image p-4 flex items-center gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <a href="/image-compressor.html" class="saas-card card-image p-4 flex items-center gap-3">
             <div class="w-10 h-10 rounded-lg icon-image flex items-center justify-center flex-shrink-0 shadow-sm"><i class="ph ph-arrows-in text-xl"></i></div>
             <div class="font-bold text-sm text-slate-800 dark:text-slate-200">Image Compressor</div>
           </a>
-          <a href="/split-pdf.html" class="saas-card card-pdf p-4 flex items-center gap-4">
+          <a href="/split-pdf.html" class="saas-card card-pdf p-4 flex items-center gap-3">
             <div class="w-10 h-10 rounded-lg icon-pdf flex items-center justify-center flex-shrink-0 shadow-sm"><i class="ph ph-scissors text-xl"></i></div>
             <div class="font-bold text-sm text-slate-800 dark:text-slate-200">Split PDF</div>
           </a>
-          <a href="/image-to-pdf.html" class="saas-card card-pdf p-4 flex items-center gap-4">
+          <a href="/image-to-pdf.html" class="saas-card card-pdf p-4 flex items-center gap-3">
             <div class="w-10 h-10 rounded-lg icon-pdf flex items-center justify-center flex-shrink-0 shadow-sm"><i class="ph ph-images text-xl"></i></div>
             <div class="font-bold text-sm text-slate-800 dark:text-slate-200">Image to PDF</div>
           </a>
-          <a href="/merge-pdf.html" class="saas-card card-pdf p-4 flex items-center gap-4">
+          <a href="/merge-pdf.html" class="saas-card card-pdf p-4 flex items-center gap-3">
             <div class="w-10 h-10 rounded-lg icon-pdf flex items-center justify-center flex-shrink-0 shadow-sm"><i class="ph ph-git-merge text-xl"></i></div>
             <div class="font-bold text-sm text-slate-800 dark:text-slate-200">Merge PDF</div>
           </a>
@@ -447,7 +439,7 @@
       <p>&copy; 2026 DocChangify | <a href="/" class="hover:text-white">Home</a></p>
     </footer>
 
-    <!-- FFmpeg.wasm v0.10.1 (main thread, no cross-origin worker issues) -->
+    <!-- FFmpeg.wasm v0.10.1 (main-thread, no cross-origin worker issues) -->
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
     <!-- JSZip for "Download All as ZIP" -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
