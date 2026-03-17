@@ -1,14 +1,15 @@
 /**
  * video-splitter.js – DocChangify
  * 
- * VERSION: 1.2 (Ultra-compatible mobile fix)
+ * VERSION: 1.3 (Local Processing + Robust Fetch)
  * 
- * FIX: Replaced flakey HTML5 <video> metadata probe with robust FFmpeg probe.
- * Some mobile browsers hang on <video>.onloadedmetadata for high-bitrate files.
- * FFmpeg reads headers directly from the file bytes, avoiding all browser codec issues.
+ * FIX: Switched to local FFmpeg core files to solve "Failed to fetch" on mobile.
+ * Added manual FileReader fallback for fetchFile to ensure local file reading 
+ * doesn't trigger CORS/Security errors in strict mobile environments.
  */
 
-const FFMPEG_CORE_ST_URL = 'https://unpkg.com/@ffmpeg/core-st@0.10.9/dist/ffmpeg-core.js';
+// Local core path (no more CDN issues)
+const FFMPEG_CORE_PATH = window.location.origin + '/ffmpeg/ffmpeg-core.js';
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 const dropZone          = document.getElementById('drop-zone');
@@ -46,16 +47,13 @@ let outputBlobs    = [];
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 function fmtTime(sec) {
+  if (isNaN(sec)) return '0:00';
   sec = Math.round(sec);
   return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
 }
 function fmtBytes(bytes) {
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-}
-function getExt(name) {
-  var m = name.match(/\.([^.]+)$/);
-  return m ? '.' + m[1].toLowerCase() : '.mp4';
 }
 
 function showSection(id) {
@@ -74,6 +72,7 @@ function setProgress(pct, label) {
   if (progressPct)   progressPct.textContent   = pct + '%';
   if (progressLabel) progressLabel.textContent = label;
 }
+
 function log(msg) {
   if (!logPanel) return;
   logPanel.textContent += msg + '\n';
@@ -87,16 +86,26 @@ function showConfigError(msg) {
   setTimeout(() => { if (area) area.innerHTML = ''; }, 7000);
 }
 
+// ─── Reliable File Loader (bypasses fetch issues) ──────────────────────────
+async function readFileAsArrayBuffer(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Failed to read local file bytes.'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
 // ─── FFmpeg Loader ────────────────────────────────────────────────────────────
 async function getFFmpeg() {
   if (ffmpegInstance) return ffmpegInstance;
   const FFmpegLib = window.FFmpeg;
-  if (!FFmpegLib) throw new Error('FFmpeg failed to load from CDN.');
+  if (!FFmpegLib) throw new Error('FFmpeg library failed to load.');
 
-  if (initStatus) initStatus.textContent = '⚡ Starting engine...';
+  if (initStatus) initStatus.textContent = '⚡ Starting local engine...';
   
   const ff = FFmpegLib.createFFmpeg({
-    corePath: FFMPEG_CORE_ST_URL,
+    corePath: FFMPEG_CORE_PATH,
     log: false,
     progress: (p) => {
       if (p.ratio > 0) {
@@ -106,13 +115,19 @@ async function getFFmpeg() {
     }
   });
 
-  if (initStatus) initStatus.textContent = '📥 Fetching toolkit (one-time)...';
-  await ff.load();
+  if (initStatus) initStatus.textContent = '📦 Loading core module...';
+  try {
+    await ff.load();
+  } catch (e) {
+    console.error('[VideoSplitter] Load error:', e);
+    throw new Error('Could not load FFmpeg core. This might be a memory issue on mobile. Try refreshing or using a smaller video.');
+  }
+
   ffmpegInstance = ff;
   return ff;
 }
 
-// ─── File Picker & Drag ───────────────────────────────────────────────────────
+// ─── Interaction Handlers ─────────────────────────────────────────────────────
 fileInput.addEventListener('change', () => {
   if (fileInput.files && fileInput.files[0]) handleFile(fileInput.files[0]);
 });
@@ -122,56 +137,36 @@ dropZone.addEventListener('click', (e) => {
   fileInput.click();
 });
 
-dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-dropZone.addEventListener('dragleave', (e) => { if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over'); });
-dropZone.addEventListener('drop', (e) => {
-  e.preventDefault();
-  dropZone.classList.remove('drag-over');
-  const f = e.dataTransfer && e.dataTransfer.files[0];
-  if (f && (f.type.startsWith('video/') || /\.(mp4|mov|avi|mkv|webm)$/i.test(f.name))) {
-    handleFile(f);
-  } else {
-    showConfigError('Please drop a valid video file.');
-  }
-});
-
-// ─── Core Logic: The Mobile-Proof Way ─────────────────────────────────────────
+// ─── Main File Handler ────────────────────────────────────────────────────────
 async function handleFile(file) {
   selectedFile = file;
   uploadIdle.classList.add('hidden');
   uploadLoading.classList.remove('hidden');
+  if (initStatus) initStatus.textContent = '🔒 Setting up secure environment...';
 
   try {
     const ff = await getFFmpeg();
-    const { fetchFile } = window.FFmpeg;
 
-    if (initStatus) initStatus.textContent = '📂 Reading video structure...';
+    if (initStatus) initStatus.textContent = '📂 Reading file structure...';
     
-    // Write to virtual FS
-    const ext = getExt(file.name);
-    const inputName = 'probe' + ext;
-    ff.FS('writeFile', inputName, await fetchFile(file));
+    // Manual read (more robust than fetchFile on mobile)
+    const arrayBuffer = await readFileAsArrayBuffer(file);
+    const inputName = 'input.vid'; // Generic name for probing
+    ff.FS('writeFile', inputName, new Uint8Array(arrayBuffer));
 
-    // RUN DUMMY COMMAND to get metadata in logs
-    // FFmpeg v0.10.x captures its own console output internally.
-    // We override console.log briefly to capture duration.
+    if (initStatus) initStatus.textContent = '🔎 Analyzing video content...';
+
+    // Probe duration using log capture
     let durationString = '';
-    const originalLog = console.log;
-    console.log = (msg) => {
-      if (typeof msg === 'string' && msg.includes('Duration: ')) {
-        durationString = msg;
-      }
-      originalLog(msg);
-    };
+    ff.setLogger(({ message }) => {
+      if (message.includes('Duration: ')) durationString = message;
+    });
 
     try {
-      // ffmpeg -i input.mp4 (this command exits with status 1 but prints metadata)
       await ff.run('-i', inputName);
-    } catch(e) { /* expected failure */ }
+    } catch(e) { /* expected -i error */ }
     
-    console.log = originalLog; // Restore
-
-    // Parse duration: "Duration: 00:00:23.45,"
+    // Parse: "Duration: 00:00:23.45,"
     const match = durationString.match(/Duration: (\d+):(\d+):(\d+\.\d+)/);
     if (match) {
       const h = parseFloat(match[1]);
@@ -179,14 +174,17 @@ async function handleFile(file) {
       const s = parseFloat(match[3]);
       videoDuration = h * 3600 + m * 60 + s;
     } else {
-      // Fallback: use HTML5 video tag ONLY if FFmpeg fails to find duration
+      // Last-ditch duration fallback
       videoDuration = await getDurationFallBack(file);
     }
 
-    if (!videoDuration || videoDuration <= 0) throw new Error('Could not detect video duration.');
+    if (!videoDuration || videoDuration <= 0) {
+      throw new Error('Video format not recognized. Try an MP4 file.');
+    }
 
-    ff.FS('unlink', inputName); // clean probe file
+    ff.FS('unlink', inputName); 
     
+    // UI Update
     fileNameEl.textContent     = file.name;
     fileSizeEl.textContent     = fmtBytes(file.size);
     fileDurationEl.textContent = fmtTime(videoDuration) + ' (' + videoDuration.toFixed(1) + 's)';
@@ -194,8 +192,8 @@ async function handleFile(file) {
     showSection('config');
 
   } catch (err) {
-    console.error('[VideoSplitter]', err);
-    alert('Problem reading video: ' + err.message + '\nTry an MP4 or MOV file.');
+    console.error('[VideoSplitter] Selection Error:', err);
+    alert('Video Error: ' + err.message);
     showSection('upload');
   }
 }
@@ -211,7 +209,7 @@ function getDurationFallBack(file) {
   });
 }
 
-// ─── UI Listeners ─────────────────────────────────────────────────────────────
+// ─── UI Actions ───────────────────────────────────────────────────────────────
 document.querySelectorAll('.preset-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     splitDuration.value = btn.getAttribute('data-seconds');
@@ -240,34 +238,33 @@ btnStartOver.addEventListener('click',  () => { freeBlobs(); doReset(); showSect
 
 function doReset() {
   selectedFile = null; videoDuration = 0; fileInput.value = ''; splitDuration.value = 10;
-  logPanel.textContent = ''; setProgress(0, 'Initializing...');
+  if (logPanel) logPanel.textContent = ''; setProgress(0, 'Ready');
 }
-function freeBlobs() { outputBlobs.forEach(b => URL.revokeObjectURL(b.url)); outputBlobs = []; clipsGrid.innerHTML = ''; }
+function freeBlobs() { outputBlobs.forEach(b => URL.revokeObjectURL(b.url)); outputBlobs = []; if(clipsGrid) clipsGrid.innerHTML = ''; }
 
-// ─── The Split Execution ──────────────────────────────────────────────────────
+// ─── Split Execution ──────────────────────────────────────────────────────────
 btnSplit.addEventListener('click', async () => {
   if (!selectedFile) return;
   const durSec = parseFloat(splitDuration.value);
   if (!durSec || durSec <= 0) return showConfigError('Invalid duration.');
 
   freeBlobs();
-  logPanel.textContent = '';
+  if (logPanel) logPanel.textContent = '';
   showSection('processing');
-  setProgress(0, 'Preparing...');
+  setProgress(0, 'Initializing...');
 
   try {
     const ff = await getFFmpeg();
-    const { fetchFile } = window.FFmpeg;
-    const ext = getExt(selectedFile.name);
-    const inputName = 'input' + ext;
+    const ext = selectedFile.name.split('.').pop();
+    const inputName = 'input.' + ext;
     const baseName  = selectedFile.name.replace(/\.[^/.]+$/, '');
     const clipCount = Math.ceil(videoDuration / durSec);
 
-    log('📂 ' + selectedFile.name);
-    log('✂️ Splitting into ' + clipCount + ' clips × ' + durSec + 's\n');
-    setProgress(5, 'Buffering video...');
+    log('📂 Processing: ' + selectedFile.name);
+    setProgress(5, 'Mounting file...');
 
-    ff.FS('writeFile', inputName, await fetchFile(selectedFile));
+    const arrayBuffer = await readFileAsArrayBuffer(selectedFile);
+    ff.FS('writeFile', inputName, new Uint8Array(arrayBuffer));
     
     for (let i = 0; i < clipCount; i++) {
       const startSec = i * durSec;
@@ -276,10 +273,19 @@ btnSplit.addEventListener('click', async () => {
       const outName  = 'clip_' + String(i + 1).padStart(3, '0') + '.mp4';
       
       const pt = 10 + Math.round((i / clipCount) * 85);
-      setProgress(pt, 'Generating clip ' + (i+1) + '/' + clipCount);
-      log('▶ ' + (i+1) + ': ' + startSec.toFixed(1) + 's – ' + endSec.toFixed(1) + 's');
+      setProgress(pt, 'Generating segment ' + (i+1) + '/' + clipCount);
+      log('▶ Clip ' + (i+1) + ': ' + fmtTime(startSec) + ' → ' + fmtTime(endSec));
 
-      await ff.run('-ss', String(startSec), '-i', inputName, '-t', String(clipDur), '-c', 'copy', '-avoid_negative_ts', 'make_zero', '-movflags', '+faststart', outName);
+      // Fast seeking with codec copy (lossless)
+      await ff.run(
+        '-ss', String(startSec), 
+        '-i', inputName, 
+        '-t', String(clipDur), 
+        '-c', 'copy', 
+        '-avoid_negative_ts', 'make_zero', 
+        '-movflags', '+faststart', 
+        outName
+      );
 
       const data = ff.FS('readFile', outName);
       ff.FS('unlink', outName);
@@ -289,20 +295,21 @@ btnSplit.addEventListener('click', async () => {
       outputBlobs.push({ name: baseName + '_clip' + (i+1) + '.mp4', url, blob, start: startSec, end: endSec, index: i+1 });
     }
 
-    ff.FS('unlink', inputName);
-    setProgress(100, 'All segments ready!');
+    try { ff.FS('unlink', inputName); } catch(e) {}
+    setProgress(100, '🎉 Finished!');
     renderResults(outputBlobs, durSec, baseName);
 
   } catch (err) {
     console.error(err);
-    alert('Splitting failed: ' + err.message);
+    alert('Split Error: ' + err.message);
     showSection('config');
   }
 });
 
 function renderResults(clips, durSec, baseName) {
   showSection('result');
-  resultSummary.textContent = clips.length + ' segments from "' + baseName + '"';
+  if (resultSummary) resultSummary.textContent = clips.length + ' clips from "' + baseName + '"';
+  if (!clipsGrid) return;
   clipsGrid.innerHTML = '';
   clips.forEach(clip => {
     const card = document.createElement('div');
@@ -319,11 +326,12 @@ function renderResults(clips, durSec, baseName) {
   });
 }
 
+// ─── ZIP Handler ──────────────────────────────────────────────────────────────
 btnDownloadZip.addEventListener('click', async () => {
   if (!outputBlobs.length || !window.JSZip) return;
   const original = btnDownloadZip.innerHTML;
   btnDownloadZip.disabled = true;
-  btnDownloadZip.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Creating ZIP...';
+  btnDownloadZip.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Zipping...';
   try {
     const zip = new JSZip();
     outputBlobs.forEach(c => zip.file(c.name, c.blob));
