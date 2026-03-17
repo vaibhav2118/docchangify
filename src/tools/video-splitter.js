@@ -1,26 +1,33 @@
 /**
- * video-splitter.js – DocChangify
- * 
- * VERSION: 1.3 (Local Processing + Robust Fetch)
- * 
- * FIX: Switched to local FFmpeg core files to solve "Failed to fetch" on mobile.
- * Added manual FileReader fallback for fetchFile to ensure local file reading 
- * doesn't trigger CORS/Security errors in strict mobile environments.
+ * video-splitter.js
+ * DocChangify – Video Splitter Tool
+ *
+ * Uses FFmpeg.wasm v0.10.1 (loaded via <script> tag in HTML).
+ * v0.10 runs entirely in the main thread – NO web workers, NO cross-origin issues.
+ * This is the standard approach for browser-based FFmpeg tools going live.
+ *
+ * API used:
+ *   const { createFFmpeg, fetchFile } = FFmpeg;   ← global set by the script tag
+ *   const ff = createFFmpeg({ corePath, log, progress });
+ *   await ff.load();
+ *   ff.FS('writeFile', name, data);
+ *   await ff.run(...args);
+ *   const data = ff.FS('readFile', name);
+ *   ff.FS('unlink', name);
  */
 
-
-
+// ─── FFmpeg core URL (single-threaded, no SharedArrayBuffer needed) ────────────
+const FFMPEG_CORE_URL = 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js';
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 const dropZone          = document.getElementById('drop-zone');
 const fileInput         = document.getElementById('file-input');
+const browseBtn         = document.getElementById('browse-btn');
+
 const uploadSection     = document.getElementById('upload-section');
 const configSection     = document.getElementById('config-section');
 const processingSection = document.getElementById('processing-section');
 const resultSection     = document.getElementById('result-section');
-const uploadIdle        = document.getElementById('upload-idle');
-const uploadLoading     = document.getElementById('upload-loading');
-const initStatus        = document.getElementById('init-status');
 
 const fileNameEl        = document.getElementById('file-name');
 const fileSizeEl        = document.getElementById('file-size');
@@ -28,341 +35,382 @@ const fileDurationEl    = document.getElementById('file-duration');
 const splitDuration     = document.getElementById('split-duration');
 const clipCountPreview  = document.getElementById('clip-count-preview');
 const changeFileBtn     = document.getElementById('change-file-btn');
+
 const btnSplit          = document.getElementById('btn-split');
 const btnReset          = document.getElementById('btn-reset');
 const btnStartOver      = document.getElementById('btn-start-over');
 const btnDownloadZip    = document.getElementById('btn-download-zip');
+
 const progressBar       = document.getElementById('progress-bar');
 const progressLabel     = document.getElementById('progress-label');
 const progressPct       = document.getElementById('progress-pct');
 const logPanel          = document.getElementById('log-panel');
+
 const resultSummary     = document.getElementById('result-summary');
 const clipsGrid         = document.getElementById('clips-grid');
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let selectedFile   = null;
 let videoDuration  = 0;
-let ffmpegInstance = null;
-let outputBlobs    = [];
+let ffmpegInstance = null;  // cached; loaded only once
+let outputBlobs    = [];    // [{name, url, blob, start, end, index}]
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 function fmtTime(sec) {
-  if (isNaN(sec)) return '0:00';
   sec = Math.round(sec);
   return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
 }
+
 function fmtBytes(bytes) {
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
 }
 
-function showSection(id) {
-  const sections = [uploadSection, configSection, processingSection, resultSection];
-  sections.forEach(s => s.classList.add('hidden'));
-  document.getElementById(id + '-section').classList.remove('hidden');
-  if (id === 'upload') {
-    uploadIdle.classList.remove('hidden');
-    uploadLoading.classList.add('hidden');
-    if (initStatus) initStatus.textContent = '';
-  }
+function getExt(name) {
+  const m = name.match(/\.([^.]+)$/);
+  return m ? '.' + m[1].toLowerCase() : '.mp4';
 }
 
+// ─── Section control ──────────────────────────────────────────────────────────
+function showSection(id) {
+  [uploadSection, configSection, processingSection, resultSection]
+    .forEach(s => s.classList.add('hidden'));
+  document.getElementById(id + '-section').classList.remove('hidden');
+}
+
+// ─── Progress / log ───────────────────────────────────────────────────────────
 function setProgress(pct, label) {
-  if (progressBar)   progressBar.style.width   = pct + '%';
-  if (progressPct)   progressPct.textContent   = pct + '%';
-  if (progressLabel) progressLabel.textContent = label;
+  progressBar.style.width  = pct + '%';
+  progressPct.textContent  = pct + '%';
+  progressLabel.textContent = label;
 }
 
 function log(msg) {
-  if (!logPanel) return;
   logPanel.textContent += msg + '\n';
   logPanel.scrollTop = logPanel.scrollHeight;
 }
 
+// ─── Error banner ─────────────────────────────────────────────────────────────
 function showConfigError(msg) {
   var area = document.getElementById('error-area');
   if (!area) return;
-  area.innerHTML = '<div class="alert-banner alert-error"><i class="ph ph-warning-circle text-xl flex-shrink-0"></i><span>' + msg + '</span></div>';
-  setTimeout(() => { if (area) area.innerHTML = ''; }, 7000);
+  area.innerHTML = '';
+  var el = document.createElement('div');
+  el.className = 'alert-banner alert-error';
+  el.innerHTML = '<i class="ph ph-warning-circle text-xl flex-shrink-0"></i><span>' + msg + '</span>';
+  area.appendChild(el);
+  setTimeout(function() { if (area) area.innerHTML = ''; }, 7000);
 }
 
-// ─── Reliable File Loader (bypasses fetch issues) ──────────────────────────
-async function readFileAsArrayBuffer(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error('Failed to read local file bytes.'));
-    reader.readAsArrayBuffer(file);
-  });
-}
+// ─── File upload handling ─────────────────────────────────────────────────────
+// NOTE: "Browse Video" is a <label for="file-input"> — the browser natively
+// opens the file picker on tap. No JS required for that interaction.
+// This is the correct fix for mobile Chrome where programmatic .click()
+// on a display:none input is silently blocked.
 
-// ─── FFmpeg Loader – Robust Version for Mobile ───────────────────────────────
-async function getFFmpeg() {
-  if (ffmpegInstance) return ffmpegInstance;
-  
-  const FFmpegLib = window.FFmpeg;
-  if (!FFmpegLib) {
-    throw new Error('Video toolkit (FFmpeg) not found. Please refresh the page.');
-  }
-
-  // Use absolute URL with cache-busting to force a fresh load
-  const timestamp = Date.now();
-  const corePath = `${window.location.origin}/ffmpeg/ffmpeg-core.js?v=${timestamp}`;
-  
-  if (initStatus) initStatus.textContent = '⚡ Starting local engine...';
-  console.log('[VideoSplitter] Initializing FFmpeg core:', corePath);
-
-  const ff = FFmpegLib.createFFmpeg({
-    corePath: corePath,
-    log: true, // Internal logs help debug mobile failures
-    progress: (p) => {
-      if (p.ratio > 0) {
-        const pct = Math.min(95, Math.round(p.ratio * 100));
-        setProgress(pct, 'Loading processor... ' + pct + '%');
-      }
-    }
-  });
-
-  if (initStatus) initStatus.textContent = '📦 Loading data (25MB)...';
-  console.log('[VideoSplitter] Calling ff.load()...');
-
-  try {
-    await ff.load();
-    console.log('[VideoSplitter] FFmpeg load successful');
-  } catch (e) {
-    console.error('[VideoSplitter] FFmpeg load error:', e);
-    
-    let errorMsg = 'Could not start video processor.\n\n';
-    if (e.message && e.message.includes('fetch')) {
-      errorMsg += 'Network error: Toolkit could not be downloaded.';
-    } else {
-      errorMsg += 'This is likely a memory limit on your mobile. Try closing other tabs or using a smaller video.';
-    }
-    
-    throw new Error(errorMsg);
-  }
-
-  ffmpegInstance = ff;
-  if (initStatus) initStatus.textContent = '✅ Ready';
-  return ff;
-}
-
-// ─── Interaction Handlers ─────────────────────────────────────────────────────
-fileInput.addEventListener('change', () => {
+fileInput.addEventListener('change', function() {
   if (fileInput.files && fileInput.files[0]) handleFile(fileInput.files[0]);
 });
 
-dropZone.addEventListener('click', (e) => {
-  if (e.target.tagName === 'LABEL' || e.target.closest('label') || e.target.tagName === 'INPUT') return;
+// Clicking the zone OUTSIDE the label also opens the picker (fallback).
+// Input is NOT display:none so .click() works on Android Chrome.
+dropZone.addEventListener('click', function(e) {
+  if (e.target.tagName === 'LABEL' || (e.target.closest && e.target.closest('label')) ||
+      e.target.tagName === 'INPUT') return;
   fileInput.click();
 });
 
-// ─── Main File Handler ────────────────────────────────────────────────────────
-async function handleFile(file) {
-  selectedFile = file;
-  uploadIdle.classList.add('hidden');
-  uploadLoading.classList.remove('hidden');
-  if (initStatus) initStatus.textContent = '🔒 Setting up secure environment...';
-
-  try {
-    const ff = await getFFmpeg();
-
-    if (initStatus) initStatus.textContent = '📂 Reading file structure...';
-    
-    // Manual read (more robust than fetchFile on mobile)
-    const arrayBuffer = await readFileAsArrayBuffer(file);
-    const inputName = 'input.vid'; // Generic name for probing
-    ff.FS('writeFile', inputName, new Uint8Array(arrayBuffer));
-
-    if (initStatus) initStatus.textContent = '🔎 Analyzing video content...';
-
-    // Probe duration using log capture
-    let durationString = '';
-    ff.setLogger(({ message }) => {
-      if (message.includes('Duration: ')) durationString = message;
-    });
-
-    try {
-      await ff.run('-i', inputName);
-    } catch(e) { /* expected -i error */ }
-    
-    // Parse: "Duration: 00:00:23.45,"
-    const match = durationString.match(/Duration: (\d+):(\d+):(\d+\.\d+)/);
-    if (match) {
-      const h = parseFloat(match[1]);
-      const m = parseFloat(match[2]);
-      const s = parseFloat(match[3]);
-      videoDuration = h * 3600 + m * 60 + s;
-    } else {
-      // Last-ditch duration fallback
-      videoDuration = await getDurationFallBack(file);
-    }
-
-    if (!videoDuration || videoDuration <= 0) {
-      throw new Error('Video format not recognized. Try an MP4 file.');
-    }
-
-    ff.FS('unlink', inputName); 
-    
-    // UI Update
-    fileNameEl.textContent     = file.name;
-    fileSizeEl.textContent     = fmtBytes(file.size);
-    fileDurationEl.textContent = fmtTime(videoDuration) + ' (' + videoDuration.toFixed(1) + 's)';
-    updateClipPreview();
-    showSection('config');
-
-  } catch (err) {
-    console.error('[VideoSplitter] Selection Error:', err);
-    alert('Video Error: ' + err.message);
-    showSection('upload');
+// Drag & drop (desktop)
+dropZone.addEventListener('dragover', function(e) {
+  e.preventDefault();
+  dropZone.classList.add('drag-over');
+});
+dropZone.addEventListener('dragleave', function(e) {
+  if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over');
+});
+dropZone.addEventListener('dragend', function() {
+  dropZone.classList.remove('drag-over');
+});
+dropZone.addEventListener('drop', function(e) {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  var f = e.dataTransfer && e.dataTransfer.files[0];
+  if (f && (f.type.startsWith('video/') || /\.(mp4|mov|avi|mkv|webm)$/i.test(f.name))) {
+    handleFile(f);
+  } else {
+    showConfigError('Please drop a valid video file (MP4, MOV, AVI).');
   }
+});
+
+function handleFile(file) {
+  selectedFile = file;
+  var url = URL.createObjectURL(file);
+  var tmp = document.createElement('video');
+  tmp.preload = 'metadata';
+  tmp.src = url;
+  tmp.onloadedmetadata = function() {
+    videoDuration = tmp.duration;
+    URL.revokeObjectURL(url);
+    if (!isFinite(videoDuration) || videoDuration <= 0) {
+      alert('Could not read video duration. Please try a different file.');
+      return;
+    }
+    showConfigSection();
+  };
+  tmp.onerror = function() {
+    URL.revokeObjectURL(url);
+    alert('Could not read video metadata. Please try a different file.');
+  };
 }
 
-function getDurationFallBack(file) {
-  return new Promise((resolve) => {
-    const v = document.createElement('video');
-    v.preload = 'metadata';
-    v.src = URL.createObjectURL(file);
-    v.onloadedmetadata = () => { URL.revokeObjectURL(v.src); resolve(v.duration); };
-    v.onerror = () => { URL.revokeObjectURL(v.src); resolve(0); };
-    setTimeout(() => resolve(0), 4000);
-  });
+function showConfigSection() {
+  fileNameEl.textContent     = selectedFile.name;
+  fileSizeEl.textContent     = fmtBytes(selectedFile.size);
+  fileDurationEl.textContent = fmtTime(videoDuration) + ' (' + videoDuration.toFixed(1) + 's)';
+  updateClipPreview();
+  showSection('config');
 }
 
-// ─── UI Actions ───────────────────────────────────────────────────────────────
-document.querySelectorAll('.preset-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
+// ─── Duration presets ─────────────────────────────────────────────────────────
+document.querySelectorAll('.preset-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
     splitDuration.value = btn.getAttribute('data-seconds');
-    document.querySelectorAll('.preset-btn').forEach(b => b.removeAttribute('style'));
-    btn.style.cssText = 'border-color:#7c3aed;color:#7c3aed;background:rgba(124,58,237,0.12);';
+    document.querySelectorAll('.preset-btn').forEach(function(b) { b.removeAttribute('style'); });
+    btn.style.cssText = 'border-color:#7c3aed;color:#7c3aed;background:rgba(124,58,237,0.10);';
     updateClipPreview();
   });
 });
 
-splitDuration.addEventListener('input', () => {
-  document.querySelectorAll('.preset-btn').forEach(b => b.removeAttribute('style'));
+splitDuration.addEventListener('input', function() {
+  document.querySelectorAll('.preset-btn').forEach(function(b) { b.removeAttribute('style'); });
   updateClipPreview();
 });
 
 function updateClipPreview() {
-  const dur = parseFloat(splitDuration.value);
-  if (!dur || dur <= 0 || !videoDuration) { clipCountPreview.classList.add('hidden'); return; }
-  const count = Math.ceil(videoDuration / dur);
-  clipCountPreview.textContent = '→ ' + count + ' clip' + (count !== 1 ? 's' : '') + ' total';
+  var dur = parseFloat(splitDuration.value);
+  if (!dur || dur <= 0 || !videoDuration) {
+    clipCountPreview.classList.add('hidden');
+    return;
+  }
+  var count = Math.ceil(videoDuration / dur);
+  clipCountPreview.textContent = '→ Will generate ' + count + ' clip' + (count !== 1 ? 's' : '');
   clipCountPreview.classList.remove('hidden');
 }
 
-changeFileBtn.addEventListener('click', () => { doReset(); showSection('upload'); });
-btnReset.addEventListener('click',      () => { doReset(); showSection('upload'); });
-btnStartOver.addEventListener('click',  () => { freeBlobs(); doReset(); showSection('upload'); });
+// ─── Reset handlers ───────────────────────────────────────────────────────────
+changeFileBtn.addEventListener('click', function() { fullReset(); showSection('upload'); });
+btnReset.addEventListener('click',      function() { fullReset(); showSection('upload'); });
+btnStartOver.addEventListener('click',  function() { freeBlobs(); fullReset(); showSection('upload'); });
 
-function doReset() {
-  selectedFile = null; videoDuration = 0; fileInput.value = ''; splitDuration.value = 10;
-  if (logPanel) logPanel.textContent = ''; setProgress(0, 'Ready');
+function fullReset() {
+  selectedFile  = null;
+  videoDuration = 0;
+  fileInput.value = '';
+  splitDuration.value = 10;
+  clipCountPreview.classList.add('hidden');
+  document.querySelectorAll('.preset-btn').forEach(function(b) { b.removeAttribute('style'); });
+  logPanel.textContent = '';
+  setProgress(0, 'Initializing...');
 }
-function freeBlobs() { outputBlobs.forEach(b => URL.revokeObjectURL(b.url)); outputBlobs = []; if(clipsGrid) clipsGrid.innerHTML = ''; }
 
-// ─── Split Execution ──────────────────────────────────────────────────────────
-btnSplit.addEventListener('click', async () => {
+function freeBlobs() {
+  outputBlobs.forEach(function(b) { URL.revokeObjectURL(b.url); });
+  outputBlobs = [];
+  clipsGrid.innerHTML = '';
+}
+
+// ─── Load FFmpeg (v0.10 API) ──────────────────────────────────────────────────
+async function getFFmpeg() {
+  if (ffmpegInstance) return ffmpegInstance;
+
+  // Access the global set by the <script> tag in HTML
+  var FFmpegLib = window.FFmpeg;
+  if (!FFmpegLib || !FFmpegLib.createFFmpeg) {
+    throw new Error('FFmpeg library not loaded. Please refresh the page.');
+  }
+
+  log('📦 Loading FFmpeg.wasm (first time may take ~20s)...');
+  setProgress(3, 'Loading FFmpeg library...');
+
+  var ff = FFmpegLib.createFFmpeg({
+    corePath: FFMPEG_CORE_URL,
+    log: false,  // suppress verbose internal logs (we add our own)
+    progress: function(p) {
+      // ratio goes 0→1 during the ffmpeg.run() call
+      if (p.ratio > 0) {
+        var pct = Math.min(95, Math.round(p.ratio * 100));
+        setProgress(pct, 'FFmpeg processing... ' + pct + '%');
+      }
+    },
+  });
+
+  setProgress(5, 'Downloading FFmpeg core (~20 MB)...');
+  log('⬇️  Fetching FFmpeg WASM from CDN...');
+
+  await ff.load();
+
+  ffmpegInstance = ff;
+  log('✅ FFmpeg ready!\n');
+  return ff;
+}
+
+// ─── Main split handler ────────────────────────────────────────────────────────
+btnSplit.addEventListener('click', async function() {
   if (!selectedFile) return;
-  const durSec = parseFloat(splitDuration.value);
-  if (!durSec || durSec <= 0) return showConfigError('Invalid duration.');
+
+  var durSec = parseFloat(splitDuration.value);
+
+  if (!durSec || durSec <= 0) {
+    return showConfigError('Please enter a split duration greater than 0 seconds.');
+  }
+  if (durSec > videoDuration) {
+    return showConfigError(
+      'Split duration (' + durSec + 's) is longer than the video (' + videoDuration.toFixed(1) + 's).'
+    );
+  }
 
   freeBlobs();
-  if (logPanel) logPanel.textContent = '';
+  logPanel.textContent = '';
   showSection('processing');
-  setProgress(0, 'Initializing...');
+  setProgress(0, 'Starting...');
 
   try {
-    const ff = await getFFmpeg();
-    const ext = selectedFile.name.split('.').pop();
-    const inputName = 'input.' + ext;
-    const baseName  = selectedFile.name.replace(/\.[^/.]+$/, '');
-    const clipCount = Math.ceil(videoDuration / durSec);
+    var ff = await getFFmpeg();
+    var fetchFile = window.FFmpeg.fetchFile;
 
-    log('📂 Processing: ' + selectedFile.name);
-    setProgress(5, 'Mounting file...');
+    var ext       = getExt(selectedFile.name);
+    var inputName = 'input' + ext;
+    var baseName  = selectedFile.name.replace(/\.[^/.]+$/, '');
+    var clipCount = Math.ceil(videoDuration / durSec);
 
-    const arrayBuffer = await readFileAsArrayBuffer(selectedFile);
-    ff.FS('writeFile', inputName, new Uint8Array(arrayBuffer));
-    
-    for (let i = 0; i < clipCount; i++) {
-      const startSec = i * durSec;
-      const endSec   = Math.min(startSec + durSec, videoDuration);
-      const clipDur  = +(endSec - startSec).toFixed(3);
-      const outName  = 'clip_' + String(i + 1).padStart(3, '0') + '.mp4';
-      
-      const pt = 10 + Math.round((i / clipCount) * 85);
-      setProgress(pt, 'Generating segment ' + (i+1) + '/' + clipCount);
-      log('▶ Clip ' + (i+1) + ': ' + fmtTime(startSec) + ' → ' + fmtTime(endSec));
+    // Write input file to virtual FS
+    log('📂 File: ' + selectedFile.name + ' (' + fmtBytes(selectedFile.size) + ')');
+    log('⏱  Duration: ' + videoDuration.toFixed(2) + 's');
+    log('✂️  Splitting into ' + clipCount + ' clip(s) × ' + durSec + 's\n');
+    setProgress(10, 'Reading file...');
 
-      // Fast seeking with codec copy (lossless)
+    ff.FS('writeFile', inputName, await fetchFile(selectedFile));
+    log('✅ File loaded into FFmpeg');
+
+    var results = [];
+
+    for (var i = 0; i < clipCount; i++) {
+      var startSec = i * durSec;
+      var endSec   = Math.min(startSec + durSec, videoDuration);
+      var clipDur  = +(endSec - startSec).toFixed(3);
+      var outName  = 'clip_' + String(i + 1).padStart(3, '0') + '.mp4';
+
+      var basePct  = 10 + Math.round((i / clipCount) * 80);
+      setProgress(basePct, 'Clip ' + (i + 1) + '/' + clipCount + ': ' + fmtTime(startSec) + ' → ' + fmtTime(endSec));
+      log('▶ Clip ' + (i + 1) + '/' + clipCount + ':  ' + startSec.toFixed(2) + 's – ' + endSec.toFixed(2) + 's');
+
       await ff.run(
-        '-ss', String(startSec), 
-        '-i', inputName, 
-        '-t', String(clipDur), 
-        '-c', 'copy', 
-        '-avoid_negative_ts', 'make_zero', 
-        '-movflags', '+faststart', 
+        '-ss', String(startSec),
+        '-i',  inputName,
+        '-t',  String(clipDur),
+        '-c',  'copy',
+        '-avoid_negative_ts', 'make_zero',
+        '-movflags', '+faststart',
         outName
       );
 
-      const data = ff.FS('readFile', outName);
+      var data = ff.FS('readFile', outName);
       ff.FS('unlink', outName);
 
-      const blob = new Blob([data.buffer], { type: 'video/mp4' });
-      const url  = URL.createObjectURL(blob);
-      outputBlobs.push({ name: baseName + '_clip' + (i+1) + '.mp4', url, blob, start: startSec, end: endSec, index: i+1 });
+      var blob = new Blob([data.buffer], { type: 'video/mp4' });
+      var url  = URL.createObjectURL(blob);
+
+      results.push({
+        name:  baseName + '_clip' + (i + 1) + '.mp4',
+        url:   url,
+        blob:  blob,
+        start: startSec,
+        end:   endSec,
+        index: i + 1,
+      });
+      log('   ✓ Clip ' + (i + 1) + ' done — ' + fmtBytes(blob.size));
     }
 
-    try { ff.FS('unlink', inputName); } catch(e) {}
-    setProgress(100, '🎉 Finished!');
-    renderResults(outputBlobs, durSec, baseName);
+    ff.FS('unlink', inputName);
+
+    outputBlobs = results;
+    setProgress(100, '🎉 Done!');
+    log('\n✅ All ' + clipCount + ' clip(s) ready!');
+    renderResults(results, durSec, baseName);
 
   } catch (err) {
-    console.error(err);
-    alert('Split Error: ' + err.message);
+    console.error('[VideoSplitter]', err);
+    log('\n❌ ERROR: ' + err.message);
     showSection('config');
+    showConfigError('Processing failed: ' + err.message + '. Please try a different video or refresh the page.');
   }
 });
 
+
+
+// ─── Render clip result cards ─────────────────────────────────────────────────
 function renderResults(clips, durSec, baseName) {
   showSection('result');
-  if (resultSummary) resultSummary.textContent = clips.length + ' clips from "' + baseName + '"';
-  if (!clipsGrid) return;
+  resultSummary.textContent =
+    clips.length + ' clip' + (clips.length !== 1 ? 's' : '') +
+    ' · ' + durSec + 's segments · "' + baseName + '"';
+
   clipsGrid.innerHTML = '';
-  clips.forEach(clip => {
-    const card = document.createElement('div');
+
+  clips.forEach(function(clip) {
+    var card = document.createElement('div');
     card.className = 'clip-card';
-    card.innerHTML = `
-      <video src="${clip.url}" controls playsinline style="width:100%"></video>
-      <div class="clip-card-body">
-        <span class="clip-badge">Segment ${clip.index}</span>
-        <p class="clip-title">${clip.name}</p>
-        <p class="clip-time">${fmtTime(clip.start)} – ${fmtTime(clip.end)} · ${fmtBytes(clip.blob.size)}</p>
-        <a href="${clip.url}" download="${clip.name}" class="clip-download-btn"><i class="ph ph-download"></i> Download</a>
-      </div>`;
+    card.innerHTML =
+      '<video src="' + clip.url + '" controls preload="metadata" playsinline title="' + clip.name + '"></video>' +
+      '<div class="clip-card-body">' +
+        '<span class="clip-badge"><i class="ph ph-film-strip"></i> Clip ' + clip.index + '</span>' +
+        '<p class="clip-title">' + clip.name + '</p>' +
+        '<p class="clip-time">' + fmtTime(clip.start) + ' – ' + fmtTime(clip.end) + ' &nbsp;·&nbsp; ' + fmtBytes(clip.blob.size) + '</p>' +
+        '<a id="dl-clip-' + clip.index + '" href="' + clip.url + '" download="' + clip.name + '" class="clip-download-btn">' +
+          '<i class="ph ph-download-simple"></i> Download' +
+        '</a>' +
+      '</div>';
     clipsGrid.appendChild(card);
   });
 }
 
-// ─── ZIP Handler ──────────────────────────────────────────────────────────────
-btnDownloadZip.addEventListener('click', async () => {
-  if (!outputBlobs.length || !window.JSZip) return;
-  const original = btnDownloadZip.innerHTML;
+// ─── Download All as ZIP ───────────────────────────────────────────────────────
+btnDownloadZip.addEventListener('click', async function() {
+  if (!outputBlobs.length) return;
+
+  var originalHTML = btnDownloadZip.innerHTML;
   btnDownloadZip.disabled = true;
-  btnDownloadZip.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Zipping...';
+  btnDownloadZip.innerHTML = '<i class="ph ph-circle-notch" style="animation:spin 0.7s linear infinite;display:inline-block;"></i> Creating ZIP...';
+
   try {
-    const zip = new JSZip();
-    outputBlobs.forEach(c => zip.file(c.name, c.blob));
-    const content = await zip.generateAsync({ type: 'blob' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(content);
-    a.download = (selectedFile ? selectedFile.name.split('.')[0] : 'clips') + '_split.zip';
+    if (!window.JSZip) {
+      throw new Error('JSZip not loaded. Please refresh the page.');
+    }
+
+    var zip    = new window.JSZip();
+    var folder = zip.folder('clips');
+    outputBlobs.forEach(function(clip) { folder.file(clip.name, clip.blob); });
+
+    var content = await zip.generateAsync({
+      type: 'blob',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 1 },  // fast — video already compressed
+    });
+
+    var zipName = (selectedFile ? selectedFile.name.replace(/\.[^/.]+$/, '') : 'clips') + '_split.zip';
+    var a       = document.createElement('a');
+    a.href      = URL.createObjectURL(content);
+    a.download  = zipName;
+    document.body.appendChild(a);
     a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(a.href); }, 1000);
+
+  } catch (err) {
+    console.error('[ZIP]', err);
+    alert('ZIP creation failed: ' + err.message);
   } finally {
-    btnDownloadZip.disabled = false;
-    btnDownloadZip.innerHTML = original;
+    btnDownloadZip.disabled  = false;
+    btnDownloadZip.innerHTML = originalHTML;
   }
 });

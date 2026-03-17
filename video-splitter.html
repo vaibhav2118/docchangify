@@ -11,9 +11,8 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://docchangify.in/video-splitter" />
 
-    <!-- FFmpeg local scripts to avoid "Failed to fetch" on mobile -->
-    <script src="/ffmpeg/ffmpeg.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- coi-serviceworker: enables SharedArrayBuffer for FFmpeg.wasm (must be same-origin) -->
+    <script src="/coi-serviceworker.js"></script>
 
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script type="module" src="/src/main.js"></script>
@@ -241,35 +240,29 @@
               accept="video/*"
               style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;"
             />
-            <div id="upload-idle">
-              <div class="w-20 h-20 mx-auto rounded-2xl bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 flex items-center justify-center mb-6 shadow-sm border border-violet-100 dark:border-violet-800/50 group-hover:scale-110 group-hover:shadow-md transition-all">
-                <i class="ph ph-film-strip text-4xl"></i>
-              </div>
-              <h3 class="text-2xl sm:text-3xl font-bold mb-3 text-slate-900 dark:text-white">
-                Drop your video here
-              </h3>
-              <p class="text-slate-500 dark:text-slate-400 mb-2 max-w-md mx-auto">
-                Supports <strong>MP4</strong>, <strong>MOV</strong>, and <strong>AVI</strong>. Processing happens locally on your device.
-              </p>
-              <p class="text-xs text-slate-400 dark:text-slate-500 mb-8">Powered by FFmpeg.wasm — no internet needed after first load</p>
-              <label
-                for="file-input"
-                id="browse-btn"
-                class="btn-primary"
-                style="background:linear-gradient(135deg,#7c3aed,#4f46e5);cursor:pointer;display:inline-flex;align-items:center;gap:8px;"
-              >
-                <i class="ph ph-upload-simple text-lg"></i> Browse Video
-              </label>
+            <div class="w-20 h-20 mx-auto rounded-2xl bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 flex items-center justify-center mb-6 shadow-sm border border-violet-100 dark:border-violet-800/50 group-hover:scale-110 group-hover:shadow-md transition-all">
+              <i class="ph ph-film-strip text-4xl"></i>
             </div>
-            <!-- Loading state -->
-            <div id="upload-loading" class="hidden py-10">
-              <div class="flex justify-center mb-6">
-                <i class="ph ph-circle-notch text-5xl text-violet-600 animate-spin"></i>
-              </div>
-              <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Analyzing Video</h3>
-              <p class="text-slate-500 dark:text-slate-400">Loading local processing engine...</p>
-              <div id="init-status" class="mt-4 text-xs font-semibold text-violet-600 dark:text-violet-400"></div>
-            </div>
+            <h3 class="text-2xl sm:text-3xl font-bold mb-3 text-slate-900 dark:text-white">
+              Drop your video here
+            </h3>
+            <p class="text-slate-500 dark:text-slate-400 mb-2 max-w-md mx-auto">
+              Supports <strong>MP4</strong>, <strong>MOV</strong>, and <strong>AVI</strong> files. Processing happens locally on your device.
+            </p>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mb-8">Powered by FFmpeg.wasm — no internet needed after first load</p>
+            <!--
+              LABEL not BUTTON: clicking a <label for="file-input"> natively opens
+              the file picker on ALL browsers including mobile Chrome/Safari/Firefox.
+              No JavaScript needed for this click — the browser handles it.
+            -->
+            <label
+              for="file-input"
+              id="browse-btn"
+              class="btn-primary"
+              style="background:linear-gradient(135deg,#7c3aed,#4f46e5);cursor:pointer;display:inline-flex;align-items:center;gap:8px;"
+            >
+              <i class="ph ph-upload-simple text-lg"></i> Browse Video
+            </label>
           </div>
         </div>
 
@@ -465,7 +458,11 @@
       <p>&copy; 2026 DocChangify | <a href="/" class="hover:text-white">Home</a></p>
     </footer>
 
+    <!-- FFmpeg.wasm v0.10.1 (main-thread, no cross-origin worker issues) -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
+    <!-- JSZip for "Download All as ZIP" -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!-- Tool logic -->
-    <script type="module" src="/src/tools/video-splitter.js"></script>
+    <script src="/src/tools/video-splitter.js"></script>
   </body>
 </html>
