@@ -237,32 +237,37 @@
             <input
               type="file"
               id="file-input"
-              accept="video/*"
+              accept="video/mp4,video/quicktime,video/x-m4v,video/x-msvideo,video/x-matroska,video/webm,video/*"
               style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;"
             />
-            <div class="w-20 h-20 mx-auto rounded-2xl bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 flex items-center justify-center mb-6 shadow-sm border border-violet-100 dark:border-violet-800/50 group-hover:scale-110 group-hover:shadow-md transition-all">
-              <i class="ph ph-film-strip text-4xl"></i>
+            <div id="upload-idle">
+              <div class="w-20 h-20 mx-auto rounded-2xl bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 flex items-center justify-center mb-6 shadow-sm border border-violet-100 dark:border-violet-800/50 group-hover:scale-110 group-hover:shadow-md transition-all">
+                <i class="ph ph-film-strip text-4xl"></i>
+              </div>
+              <h3 class="text-2xl sm:text-3xl font-bold mb-3 text-slate-900 dark:text-white">
+                Drop your video here
+              </h3>
+              <p class="text-slate-500 dark:text-slate-400 mb-2 max-w-md mx-auto">
+                Supports <strong>MP4</strong>, <strong>MOV</strong>, and <strong>AVI</strong>. Processing happens locally on your device.
+              </p>
+              <p class="text-xs text-slate-400 dark:text-slate-500 mb-8">Powered by FFmpeg.wasm — no internet needed after first load</p>
+              <label
+                for="file-input"
+                id="browse-btn"
+                class="btn-primary"
+                style="background:linear-gradient(135deg,#7c3aed,#4f46e5);cursor:pointer;display:inline-flex;align-items:center;gap:8px;"
+              >
+                <i class="ph ph-upload-simple text-lg"></i> Browse Video
+              </label>
             </div>
-            <h3 class="text-2xl sm:text-3xl font-bold mb-3 text-slate-900 dark:text-white">
-              Drop your video here
-            </h3>
-            <p class="text-slate-500 dark:text-slate-400 mb-2 max-w-md mx-auto">
-              Supports <strong>MP4</strong>, <strong>MOV</strong>, and <strong>AVI</strong> files. Processing happens locally on your device.
-            </p>
-            <p class="text-xs text-slate-400 dark:text-slate-500 mb-8">Powered by FFmpeg.wasm — no internet needed after first load</p>
-            <!--
-              LABEL not BUTTON: clicking a <label for="file-input"> natively opens
-              the file picker on ALL browsers including mobile Chrome/Safari/Firefox.
-              No JavaScript needed for this click — the browser handles it.
-            -->
-            <label
-              for="file-input"
-              id="browse-btn"
-              class="btn-primary"
-              style="background:linear-gradient(135deg,#7c3aed,#4f46e5);cursor:pointer;display:inline-flex;align-items:center;gap:8px;"
-            >
-              <i class="ph ph-upload-simple text-lg"></i> Browse Video
-            </label>
+            <!-- Loading state -->
+            <div id="upload-loading" class="hidden py-10">
+              <div class="flex justify-center mb-6">
+                <i class="ph ph-circle-notch text-5xl text-violet-600 animate-spin"></i>
+              </div>
+              <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Reading Video Metadata</h3>
+              <p class="text-slate-500 dark:text-slate-400">Please wait while we check your file...</p>
+            </div>
           </div>
         </div>
 

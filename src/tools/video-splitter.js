@@ -63,20 +63,30 @@ function getExt(name) {
   return m ? '.' + m[1].toLowerCase() : '.mp4';
 }
 
+const uploadIdle       = document.getElementById('upload-idle');
+const uploadLoading    = document.getElementById('upload-loading');
+
 // ─── Section switcher ─────────────────────────────────────────────────────────
 function showSection(id) {
   var sections = [uploadSection, configSection, processingSection, resultSection];
   sections.forEach(function(s) { s.classList.add('hidden'); });
   document.getElementById(id + '-section').classList.remove('hidden');
+  
+  // Reset upload UI if going back to upload
+  if (id === 'upload') {
+    uploadIdle.classList.remove('hidden');
+    uploadLoading.classList.add('hidden');
+  }
 }
 
 // ─── Progress helpers ─────────────────────────────────────────────────────────
 function setProgress(pct, label) {
-  progressBar.style.width   = pct + '%';
-  progressPct.textContent   = pct + '%';
-  progressLabel.textContent = label;
+  if (progressBar)   progressBar.style.width = pct + '%';
+  if (progressPct)   progressPct.textContent = pct + '%';
+  if (progressLabel) progressLabel.textContent = label;
 }
 function log(msg) {
+  if (!logPanel) return;
   logPanel.textContent += msg + '\n';
   logPanel.scrollTop = logPanel.scrollHeight;
 }
@@ -94,22 +104,17 @@ function showConfigError(msg) {
 }
 
 // ─── File upload handling ─────────────────────────────────────────────────────
-// "Browse Video" is a <label for="file-input"> — browser natively opens
-// file picker on tap (works on all mobile browsers without JS).
-
 fileInput.addEventListener('change', function() {
   if (fileInput.files && fileInput.files[0]) handleFile(fileInput.files[0]);
 });
 
-// Clicking the zone OUTSIDE the label also opens the picker
 dropZone.addEventListener('click', function(e) {
-  if (e.target.tagName === 'LABEL' ||
-     (e.target.closest && e.target.closest('label')) ||
+  if (e.target.tagName === 'LABEL' || (e.target.closest && e.target.closest('label')) ||
       e.target.tagName === 'INPUT') return;
   fileInput.click();
 });
 
-// Drag & drop (desktop)
+// Drag & drop
 dropZone.addEventListener('dragover', function(e) {
   e.preventDefault();
   dropZone.classList.add('drag-over');
@@ -132,25 +137,60 @@ dropZone.addEventListener('drop', function(e) {
 });
 
 function handleFile(file) {
+  console.log('[VideoSplitter] File selected:', file.name, file.type, file.size);
+  
+  // Show loading state
+  uploadIdle.classList.add('hidden');
+  uploadLoading.classList.remove('hidden');
+
   selectedFile = file;
   var objectUrl = URL.createObjectURL(file);
   var tmp = document.createElement('video');
+  
+  // Mobile compatibility flags
+  tmp.setAttribute('muted', '');
+  tmp.setAttribute('playsinline', '');
+  tmp.muted = true;
+  tmp.playsInline = true;
   tmp.preload = 'metadata';
-  tmp.src = objectUrl;
-  tmp.onloadedmetadata = function() {
-    videoDuration = tmp.duration;
+  tmp.style.display = 'none';
+  document.body.appendChild(tmp); // Some browsers need it in DOM
+
+  // Timeout safety: if metadata fails in 6s, show error
+  var metadataTimeout = setTimeout(function() {
+    cleanup();
+    alert('Browser timeout: Could not read video metadata. Try a different browser or MP4/MOV format.');
+    showSection('upload');
+  }, 7000);
+
+  function cleanup() {
+    clearTimeout(metadataTimeout);
     URL.revokeObjectURL(objectUrl);
-    tmp.removeAttribute('src');
+    if (tmp.parentNode) tmp.parentNode.removeChild(tmp);
+  }
+
+  tmp.onloadedmetadata = function() {
+    console.log('[VideoSplitter] Metadata loaded. Duration:', tmp.duration);
+    videoDuration = tmp.duration;
+    cleanup();
+    
     if (!isFinite(videoDuration) || videoDuration <= 0) {
-      alert('Could not read video duration. Please try a different file.');
+      alert('Invalid video duration detected. Is the file corrupted?');
+      showSection('upload');
       return;
     }
     showConfigSection();
   };
+
   tmp.onerror = function() {
-    URL.revokeObjectURL(objectUrl);
-    alert('Could not read this video file. Please try MP4 or MOV format.');
+    console.error('[VideoSplitter] Video tag error:', tmp.error);
+    cleanup();
+    alert('Could not read this video. Please ensure it is a valid MP4, MOV, or AVI file.');
+    showSection('upload');
   };
+
+  tmp.src = objectUrl;
+  tmp.load(); // Explicit load call for mobile Chrome
 }
 
 function showConfigSection() {
