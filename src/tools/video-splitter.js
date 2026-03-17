@@ -137,60 +137,87 @@ dropZone.addEventListener('drop', function(e) {
 });
 
 function handleFile(file) {
-  console.log('[VideoSplitter] File selected:', file.name, file.type, file.size);
+  console.log('[VideoSplitter] v2.1: File selected:', file.name, file.type, file.size);
   
-  // Show loading state
+  // Show loading state immediately
   uploadIdle.classList.add('hidden');
   uploadLoading.classList.remove('hidden');
 
   selectedFile = file;
-  var objectUrl = URL.createObjectURL(file);
-  var tmp = document.createElement('video');
   
-  // Mobile compatibility flags
-  tmp.setAttribute('muted', '');
-  tmp.setAttribute('playsinline', '');
-  tmp.muted = true;
-  tmp.playsInline = true;
-  tmp.preload = 'metadata';
-  tmp.style.display = 'none';
-  document.body.appendChild(tmp); // Some browsers need it in DOM
+  // Strategy: Use FFmpeg itself to get the duration. 
+  // Native <video> metadata is too unreliable on mobile Chrome.
+  extractMetadataWithFFmpeg(file);
+}
 
-  // Timeout safety: if metadata fails in 6s, show error
-  var metadataTimeout = setTimeout(function() {
-    cleanup();
-    alert('Browser timeout: Could not read video metadata. Try a different browser or MP4/MOV format.');
-    showSection('upload');
-  }, 7000);
+async function extractMetadataWithFFmpeg(file) {
+  try {
+    const ff = await getFFmpeg();
+    const fetchFile = window.FFmpeg.fetchFile;
+    const inputExt = getExt(file.name);
+    const inputName = 'probe' + inputExt;
 
-  function cleanup() {
-    clearTimeout(metadataTimeout);
-    URL.revokeObjectURL(objectUrl);
-    if (tmp.parentNode) tmp.parentNode.removeChild(tmp);
-  }
+    setProgress(15, 'Reading file metadata...');
+    console.log('[VideoSplitter] Probing with FFmpeg...');
 
-  tmp.onloadedmetadata = function() {
-    console.log('[VideoSplitter] Metadata loaded. Duration:', tmp.duration);
-    videoDuration = tmp.duration;
-    cleanup();
+    // Load file into virtual FS
+    ff.FS('writeFile', inputName, await fetchFile(file));
+
+    // Run a dummy command to get duration (ffmpeg -i file)
+    // We catch the output because FFmpeg "fails" when no output file is specified,
+    // but the input info is printed to the log.
+    let durationString = '';
+    const originalLog = ffmpegInstance.setLogging ? null : null; // v0.10.1 handles logs via createFFmpeg options
     
-    if (!isFinite(videoDuration) || videoDuration <= 0) {
-      alert('Invalid video duration detected. Is the file corrupted?');
-      showSection('upload');
-      return;
+    // We need to capture the logger output to find "Duration: 00:00:00.00"
+    const ffmpegForProbe = window.FFmpeg.createFFmpeg({
+      corePath: FFMPEG_CORE_ST_URL,
+      log: true,
+      logger: ({ message }) => {
+        if (message && message.includes('Duration:')) {
+          durationString = message;
+          console.log('[VideoSplitter] Found duration string:', durationString);
+        }
+      }
+    });
+    
+    await ffmpegForProbe.load();
+    try {
+      ffmpegForProbe.FS('writeFile', inputName, await fetchFile(file));
+      await ffmpegForProbe.run('-i', inputName);
+    } catch (e) {
+      // FFmpeg always throws an error when just probing (-i with no output)
     }
+
+    if (durationString) {
+      // Duration: 00:00:03.52, start: 0.000000, bitrate: 1475 kb/s
+      const match = durationString.match(/Duration: (\d+):(\d+):(\d+\.\d+)/);
+      if (match) {
+        const h = parseFloat(match[1]);
+        const m = parseFloat(match[2]);
+        const s = parseFloat(match[3]);
+        videoDuration = h * 3600 + m * 60 + s;
+        console.log('[VideoSplitter] Parsed duration:', videoDuration);
+      }
+    }
+
+    // Backup: If the log parsing failed, try to get it from the probe's internal state if possible
+    // (In v0.10.1, we often have to rely on log parsing)
+
+    // Final cleanup of probe instance
+    try { ffmpegForProbe.FS('unlink', inputName); } catch(e) {}
+    ffmpegForProbe.exit();
+
+    if (!videoDuration || videoDuration <= 0) {
+      throw new Error('Could not determine video length. Is this a valid video file?');
+    }
+
     showConfigSection();
-  };
-
-  tmp.onerror = function() {
-    console.error('[VideoSplitter] Video tag error:', tmp.error);
-    cleanup();
-    alert('Could not read this video. Please ensure it is a valid MP4, MOV, or AVI file.');
+  } catch (err) {
+    console.error('[VideoSplitter] Metadata extraction failed:', err);
+    alert('Error reading video: ' + err.message + '. Please ensure it is a valid video file.');
     showSection('upload');
-  };
-
-  tmp.src = objectUrl;
-  tmp.load(); // Explicit load call for mobile Chrome
+  }
 }
 
 function showConfigSection() {
