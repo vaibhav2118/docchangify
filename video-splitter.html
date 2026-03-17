@@ -11,8 +11,9 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://docchangify.in/video-splitter" />
 
-    <!-- coi-serviceworker: enables SharedArrayBuffer for FFmpeg.wasm (must be same-origin) -->
-    <script src="/coi-serviceworker.js"></script>
+    <!-- FFmpeg.wasm v0.10.1 (main-thread, no cross-origin worker issues) -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script type="module" src="/src/main.js"></script>
@@ -237,7 +238,7 @@
             <input
               type="file"
               id="file-input"
-              accept="video/mp4,video/quicktime,video/x-m4v,video/x-msvideo,video/x-matroska,video/webm,video/*"
+              accept="video/*"
               style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;"
             />
             <div id="upload-idle">
@@ -265,8 +266,9 @@
               <div class="flex justify-center mb-6">
                 <i class="ph ph-circle-notch text-5xl text-violet-600 animate-spin"></i>
               </div>
-              <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Reading Video Metadata</h3>
-              <p class="text-slate-500 dark:text-slate-400">Please wait while we check your file...</p>
+              <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Analyzing Video</h3>
+              <p class="text-slate-500 dark:text-slate-400">Loading local processing engine...</p>
+              <div id="init-status" class="mt-4 text-xs font-semibold text-violet-600 dark:text-violet-400"></div>
             </div>
           </div>
         </div>
@@ -463,11 +465,7 @@
       <p>&copy; 2026 DocChangify | <a href="/" class="hover:text-white">Home</a></p>
     </footer>
 
-    <!-- FFmpeg.wasm v0.10.1 (main-thread, no cross-origin worker issues) -->
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
-    <!-- JSZip for "Download All as ZIP" -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!-- Tool logic -->
-    <script src="/src/tools/video-splitter.js"></script>
+    <script type="module" src="/src/tools/video-splitter.js"></script>
   </body>
 </html>

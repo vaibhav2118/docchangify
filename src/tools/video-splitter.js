@@ -1,27 +1,25 @@
 /**
- * video-splitter.js  –  DocChangify
- *
- * Uses @ffmpeg/ffmpeg@0.10.1 with @ffmpeg/core-st@0.10.9 (SINGLE-THREADED core).
- *
- * KEY DIFFERENCE vs @ffmpeg/core (multi-threaded):
- *   @ffmpeg/core      → uses pthreads → needs SharedArrayBuffer → needs COOP+COEP headers
- *   @ffmpeg/core-st   → single-threaded → NO SharedArrayBuffer → works on ALL browsers + mobile
- *
- * Works on: Desktop Chrome/Firefox/Safari, Android Chrome, iOS Safari 15+
- * No server required. No upload. 100% local processing.
+ * video-splitter.js – DocChangify
+ * 
+ * VERSION: 1.2 (Ultra-compatible mobile fix)
+ * 
+ * FIX: Replaced flakey HTML5 <video> metadata probe with robust FFmpeg probe.
+ * Some mobile browsers hang on <video>.onloadedmetadata for high-bitrate files.
+ * FFmpeg reads headers directly from the file bytes, avoiding all browser codec issues.
  */
 
-// ─── Single-threaded FFmpeg core — no SharedArrayBuffer needed ────────────────
 const FFMPEG_CORE_ST_URL = 'https://unpkg.com/@ffmpeg/core-st@0.10.9/dist/ffmpeg-core.js';
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 const dropZone          = document.getElementById('drop-zone');
 const fileInput         = document.getElementById('file-input');
-
 const uploadSection     = document.getElementById('upload-section');
 const configSection     = document.getElementById('config-section');
 const processingSection = document.getElementById('processing-section');
 const resultSection     = document.getElementById('result-section');
+const uploadIdle        = document.getElementById('upload-idle');
+const uploadLoading     = document.getElementById('upload-loading');
+const initStatus        = document.getElementById('init-status');
 
 const fileNameEl        = document.getElementById('file-name');
 const fileSizeEl        = document.getElementById('file-size');
@@ -29,17 +27,14 @@ const fileDurationEl    = document.getElementById('file-duration');
 const splitDuration     = document.getElementById('split-duration');
 const clipCountPreview  = document.getElementById('clip-count-preview');
 const changeFileBtn     = document.getElementById('change-file-btn');
-
 const btnSplit          = document.getElementById('btn-split');
 const btnReset          = document.getElementById('btn-reset');
 const btnStartOver      = document.getElementById('btn-start-over');
 const btnDownloadZip    = document.getElementById('btn-download-zip');
-
 const progressBar       = document.getElementById('progress-bar');
 const progressLabel     = document.getElementById('progress-label');
 const progressPct       = document.getElementById('progress-pct');
 const logPanel          = document.getElementById('log-panel');
-
 const resultSummary     = document.getElementById('result-summary');
 const clipsGrid         = document.getElementById('clips-grid');
 
@@ -63,26 +58,20 @@ function getExt(name) {
   return m ? '.' + m[1].toLowerCase() : '.mp4';
 }
 
-const uploadIdle       = document.getElementById('upload-idle');
-const uploadLoading    = document.getElementById('upload-loading');
-
-// ─── Section switcher ─────────────────────────────────────────────────────────
 function showSection(id) {
-  var sections = [uploadSection, configSection, processingSection, resultSection];
-  sections.forEach(function(s) { s.classList.add('hidden'); });
+  const sections = [uploadSection, configSection, processingSection, resultSection];
+  sections.forEach(s => s.classList.add('hidden'));
   document.getElementById(id + '-section').classList.remove('hidden');
-  
-  // Reset upload UI if going back to upload
   if (id === 'upload') {
     uploadIdle.classList.remove('hidden');
     uploadLoading.classList.add('hidden');
+    if (initStatus) initStatus.textContent = '';
   }
 }
 
-// ─── Progress helpers ─────────────────────────────────────────────────────────
 function setProgress(pct, label) {
-  if (progressBar)   progressBar.style.width = pct + '%';
-  if (progressPct)   progressPct.textContent = pct + '%';
+  if (progressBar)   progressBar.style.width   = pct + '%';
+  if (progressPct)   progressPct.textContent   = pct + '%';
   if (progressLabel) progressLabel.textContent = label;
 }
 function log(msg) {
@@ -91,352 +80,261 @@ function log(msg) {
   logPanel.scrollTop = logPanel.scrollHeight;
 }
 
-// ─── Error banner (inside config section) ─────────────────────────────────────
 function showConfigError(msg) {
   var area = document.getElementById('error-area');
   if (!area) return;
-  area.innerHTML = '';
-  var el = document.createElement('div');
-  el.className = 'alert-banner alert-error';
-  el.innerHTML = '<i class="ph ph-warning-circle text-xl flex-shrink-0"></i><span>' + msg + '</span>';
-  area.appendChild(el);
-  setTimeout(function() { if (area) area.innerHTML = ''; }, 9000);
+  area.innerHTML = '<div class="alert-banner alert-error"><i class="ph ph-warning-circle text-xl flex-shrink-0"></i><span>' + msg + '</span></div>';
+  setTimeout(() => { if (area) area.innerHTML = ''; }, 7000);
 }
 
-// ─── File upload handling ─────────────────────────────────────────────────────
-fileInput.addEventListener('change', function() {
+// ─── FFmpeg Loader ────────────────────────────────────────────────────────────
+async function getFFmpeg() {
+  if (ffmpegInstance) return ffmpegInstance;
+  const FFmpegLib = window.FFmpeg;
+  if (!FFmpegLib) throw new Error('FFmpeg failed to load from CDN.');
+
+  if (initStatus) initStatus.textContent = '⚡ Starting engine...';
+  
+  const ff = FFmpegLib.createFFmpeg({
+    corePath: FFMPEG_CORE_ST_URL,
+    log: false,
+    progress: (p) => {
+      if (p.ratio > 0) {
+        const pct = Math.min(95, Math.round(p.ratio * 100));
+        setProgress(pct, 'Processing... ' + pct + '%');
+      }
+    }
+  });
+
+  if (initStatus) initStatus.textContent = '📥 Fetching toolkit (one-time)...';
+  await ff.load();
+  ffmpegInstance = ff;
+  return ff;
+}
+
+// ─── File Picker & Drag ───────────────────────────────────────────────────────
+fileInput.addEventListener('change', () => {
   if (fileInput.files && fileInput.files[0]) handleFile(fileInput.files[0]);
 });
 
-dropZone.addEventListener('click', function(e) {
-  if (e.target.tagName === 'LABEL' || (e.target.closest && e.target.closest('label')) ||
-      e.target.tagName === 'INPUT') return;
+dropZone.addEventListener('click', (e) => {
+  if (e.target.tagName === 'LABEL' || e.target.closest('label') || e.target.tagName === 'INPUT') return;
   fileInput.click();
 });
 
-// Drag & drop
-dropZone.addEventListener('dragover', function(e) {
-  e.preventDefault();
-  dropZone.classList.add('drag-over');
-});
-dropZone.addEventListener('dragleave', function(e) {
-  if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over');
-});
-dropZone.addEventListener('dragend', function() {
-  dropZone.classList.remove('drag-over');
-});
-dropZone.addEventListener('drop', function(e) {
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', (e) => { if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over'); });
+dropZone.addEventListener('drop', (e) => {
   e.preventDefault();
   dropZone.classList.remove('drag-over');
-  var f = e.dataTransfer && e.dataTransfer.files[0];
+  const f = e.dataTransfer && e.dataTransfer.files[0];
   if (f && (f.type.startsWith('video/') || /\.(mp4|mov|avi|mkv|webm)$/i.test(f.name))) {
     handleFile(f);
   } else {
-    showConfigError('Please drop a valid video file (MP4, MOV, AVI).');
+    showConfigError('Please drop a valid video file.');
   }
 });
 
-function handleFile(file) {
-  console.log('[VideoSplitter] v2.1: File selected:', file.name, file.type, file.size);
-  
-  // Show loading state immediately
+// ─── Core Logic: The Mobile-Proof Way ─────────────────────────────────────────
+async function handleFile(file) {
+  selectedFile = file;
   uploadIdle.classList.add('hidden');
   uploadLoading.classList.remove('hidden');
 
-  selectedFile = file;
-  
-  // Strategy: Use FFmpeg itself to get the duration. 
-  // Native <video> metadata is too unreliable on mobile Chrome.
-  extractMetadataWithFFmpeg(file);
-}
-
-async function extractMetadataWithFFmpeg(file) {
   try {
     const ff = await getFFmpeg();
-    const fetchFile = window.FFmpeg.fetchFile;
-    const inputExt = getExt(file.name);
-    const inputName = 'probe' + inputExt;
+    const { fetchFile } = window.FFmpeg;
 
-    setProgress(15, 'Reading file metadata...');
-    console.log('[VideoSplitter] Probing with FFmpeg...');
-
-    // Load file into virtual FS
+    if (initStatus) initStatus.textContent = '📂 Reading video structure...';
+    
+    // Write to virtual FS
+    const ext = getExt(file.name);
+    const inputName = 'probe' + ext;
     ff.FS('writeFile', inputName, await fetchFile(file));
 
-    // Run a dummy command to get duration (ffmpeg -i file)
-    // We catch the output because FFmpeg "fails" when no output file is specified,
-    // but the input info is printed to the log.
+    // RUN DUMMY COMMAND to get metadata in logs
+    // FFmpeg v0.10.x captures its own console output internally.
+    // We override console.log briefly to capture duration.
     let durationString = '';
-    const originalLog = ffmpegInstance.setLogging ? null : null; // v0.10.1 handles logs via createFFmpeg options
-    
-    // We need to capture the logger output to find "Duration: 00:00:00.00"
-    const ffmpegForProbe = window.FFmpeg.createFFmpeg({
-      corePath: FFMPEG_CORE_ST_URL,
-      log: true,
-      logger: ({ message }) => {
-        if (message && message.includes('Duration:')) {
-          durationString = message;
-          console.log('[VideoSplitter] Found duration string:', durationString);
-        }
+    const originalLog = console.log;
+    console.log = (msg) => {
+      if (typeof msg === 'string' && msg.includes('Duration: ')) {
+        durationString = msg;
       }
-    });
-    
-    await ffmpegForProbe.load();
+      originalLog(msg);
+    };
+
     try {
-      ffmpegForProbe.FS('writeFile', inputName, await fetchFile(file));
-      await ffmpegForProbe.run('-i', inputName);
-    } catch (e) {
-      // FFmpeg always throws an error when just probing (-i with no output)
+      // ffmpeg -i input.mp4 (this command exits with status 1 but prints metadata)
+      await ff.run('-i', inputName);
+    } catch(e) { /* expected failure */ }
+    
+    console.log = originalLog; // Restore
+
+    // Parse duration: "Duration: 00:00:23.45,"
+    const match = durationString.match(/Duration: (\d+):(\d+):(\d+\.\d+)/);
+    if (match) {
+      const h = parseFloat(match[1]);
+      const m = parseFloat(match[2]);
+      const s = parseFloat(match[3]);
+      videoDuration = h * 3600 + m * 60 + s;
+    } else {
+      // Fallback: use HTML5 video tag ONLY if FFmpeg fails to find duration
+      videoDuration = await getDurationFallBack(file);
     }
 
-    if (durationString) {
-      // Duration: 00:00:03.52, start: 0.000000, bitrate: 1475 kb/s
-      const match = durationString.match(/Duration: (\d+):(\d+):(\d+\.\d+)/);
-      if (match) {
-        const h = parseFloat(match[1]);
-        const m = parseFloat(match[2]);
-        const s = parseFloat(match[3]);
-        videoDuration = h * 3600 + m * 60 + s;
-        console.log('[VideoSplitter] Parsed duration:', videoDuration);
-      }
-    }
+    if (!videoDuration || videoDuration <= 0) throw new Error('Could not detect video duration.');
 
-    // Backup: If the log parsing failed, try to get it from the probe's internal state if possible
-    // (In v0.10.1, we often have to rely on log parsing)
+    ff.FS('unlink', inputName); // clean probe file
+    
+    fileNameEl.textContent     = file.name;
+    fileSizeEl.textContent     = fmtBytes(file.size);
+    fileDurationEl.textContent = fmtTime(videoDuration) + ' (' + videoDuration.toFixed(1) + 's)';
+    updateClipPreview();
+    showSection('config');
 
-    // Final cleanup of probe instance
-    try { ffmpegForProbe.FS('unlink', inputName); } catch(e) {}
-    ffmpegForProbe.exit();
-
-    if (!videoDuration || videoDuration <= 0) {
-      throw new Error('Could not determine video length. Is this a valid video file?');
-    }
-
-    showConfigSection();
   } catch (err) {
-    console.error('[VideoSplitter] Metadata extraction failed:', err);
-    alert('Error reading video: ' + err.message + '. Please ensure it is a valid video file.');
+    console.error('[VideoSplitter]', err);
+    alert('Problem reading video: ' + err.message + '\nTry an MP4 or MOV file.');
     showSection('upload');
   }
 }
 
-function showConfigSection() {
-  fileNameEl.textContent     = selectedFile.name;
-  fileSizeEl.textContent     = fmtBytes(selectedFile.size);
-  fileDurationEl.textContent = fmtTime(videoDuration) + ' (' + videoDuration.toFixed(1) + 's)';
-  updateClipPreview();
-  showSection('config');
+function getDurationFallBack(file) {
+  return new Promise((resolve) => {
+    const v = document.createElement('video');
+    v.preload = 'metadata';
+    v.src = URL.createObjectURL(file);
+    v.onloadedmetadata = () => { URL.revokeObjectURL(v.src); resolve(v.duration); };
+    v.onerror = () => { URL.revokeObjectURL(v.src); resolve(0); };
+    setTimeout(() => resolve(0), 4000);
+  });
 }
 
-// ─── Duration presets ─────────────────────────────────────────────────────────
-document.querySelectorAll('.preset-btn').forEach(function(btn) {
-  btn.addEventListener('click', function() {
+// ─── UI Listeners ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
     splitDuration.value = btn.getAttribute('data-seconds');
-    document.querySelectorAll('.preset-btn').forEach(function(b) { b.removeAttribute('style'); });
+    document.querySelectorAll('.preset-btn').forEach(b => b.removeAttribute('style'));
     btn.style.cssText = 'border-color:#7c3aed;color:#7c3aed;background:rgba(124,58,237,0.12);';
     updateClipPreview();
   });
 });
-splitDuration.addEventListener('input', function() {
-  document.querySelectorAll('.preset-btn').forEach(function(b) { b.removeAttribute('style'); });
+
+splitDuration.addEventListener('input', () => {
+  document.querySelectorAll('.preset-btn').forEach(b => b.removeAttribute('style'));
   updateClipPreview();
 });
 
 function updateClipPreview() {
-  var dur = parseFloat(splitDuration.value);
+  const dur = parseFloat(splitDuration.value);
   if (!dur || dur <= 0 || !videoDuration) { clipCountPreview.classList.add('hidden'); return; }
-  var count = Math.ceil(videoDuration / dur);
-  clipCountPreview.textContent = '→ Will generate ' + count + ' clip' + (count !== 1 ? 's' : '');
+  const count = Math.ceil(videoDuration / dur);
+  clipCountPreview.textContent = '→ ' + count + ' clip' + (count !== 1 ? 's' : '') + ' total';
   clipCountPreview.classList.remove('hidden');
 }
 
-// ─── Reset handlers ───────────────────────────────────────────────────────────
-changeFileBtn.addEventListener('click', function() { doReset(); showSection('upload'); });
-btnReset.addEventListener('click',      function() { doReset(); showSection('upload'); });
-btnStartOver.addEventListener('click',  function() { freeBlobs(); doReset(); showSection('upload'); });
+changeFileBtn.addEventListener('click', () => { doReset(); showSection('upload'); });
+btnReset.addEventListener('click',      () => { doReset(); showSection('upload'); });
+btnStartOver.addEventListener('click',  () => { freeBlobs(); doReset(); showSection('upload'); });
 
 function doReset() {
-  selectedFile = null; videoDuration = 0;
-  fileInput.value = '';
-  splitDuration.value = 10;
-  clipCountPreview.classList.add('hidden');
-  document.querySelectorAll('.preset-btn').forEach(function(b) { b.removeAttribute('style'); });
-  logPanel.textContent = '';
-  setProgress(0, 'Initializing...');
+  selectedFile = null; videoDuration = 0; fileInput.value = ''; splitDuration.value = 10;
+  logPanel.textContent = ''; setProgress(0, 'Initializing...');
 }
-function freeBlobs() {
-  outputBlobs.forEach(function(b) { URL.revokeObjectURL(b.url); });
-  outputBlobs = [];
-  clipsGrid.innerHTML = '';
-}
+function freeBlobs() { outputBlobs.forEach(b => URL.revokeObjectURL(b.url)); outputBlobs = []; clipsGrid.innerHTML = ''; }
 
-// ─── Load FFmpeg with SINGLE-THREADED core ────────────────────────────────────
-async function getFFmpeg() {
-  if (ffmpegInstance) return ffmpegInstance;
-
-  var FFmpegLib = window.FFmpeg;
-  if (!FFmpegLib || !FFmpegLib.createFFmpeg) {
-    throw new Error('FFmpeg library not loaded. Please refresh the page.');
-  }
-
-  log('📦 Loading FFmpeg (single-threaded core)...');
-  log('   Works on all browsers including mobile — no special headers needed.');
-  setProgress(3, 'Loading FFmpeg library...');
-
-  var ff = FFmpegLib.createFFmpeg({
-    // @ffmpeg/core-st = SINGLE-THREADED → NO SharedArrayBuffer → works on mobile
-    corePath: FFMPEG_CORE_ST_URL,
-    log: false,
-    progress: function(p) {
-      if (p.ratio > 0) {
-        var pct = Math.min(95, Math.round(p.ratio * 100));
-        setProgress(pct, 'FFmpeg processing... ' + pct + '%');
-      }
-    },
-  });
-
-  setProgress(5, 'Downloading FFmpeg core (~10 MB, first time only)...');
-  log('⬇️  Downloading single-threaded FFmpeg WASM...');
-
-  await ff.load();
-
-  ffmpegInstance = ff;
-  log('✅ FFmpeg ready!\n');
-  return ff;
-}
-
-// ─── Main split handler ────────────────────────────────────────────────────────
-btnSplit.addEventListener('click', async function() {
+// ─── The Split Execution ──────────────────────────────────────────────────────
+btnSplit.addEventListener('click', async () => {
   if (!selectedFile) return;
-
-  var durSec = parseFloat(splitDuration.value);
-  if (!durSec || durSec <= 0) return showConfigError('Please enter a duration greater than 0 seconds.');
-  if (durSec >= videoDuration) return showConfigError(
-    'Duration (' + durSec + 's) must be shorter than the video (' + videoDuration.toFixed(1) + 's).'
-  );
+  const durSec = parseFloat(splitDuration.value);
+  if (!durSec || durSec <= 0) return showConfigError('Invalid duration.');
 
   freeBlobs();
   logPanel.textContent = '';
   showSection('processing');
-  setProgress(0, 'Starting...');
+  setProgress(0, 'Preparing...');
 
   try {
-    var ff        = await getFFmpeg();
-    var fetchFile = window.FFmpeg.fetchFile;
+    const ff = await getFFmpeg();
+    const { fetchFile } = window.FFmpeg;
+    const ext = getExt(selectedFile.name);
+    const inputName = 'input' + ext;
+    const baseName  = selectedFile.name.replace(/\.[^/.]+$/, '');
+    const clipCount = Math.ceil(videoDuration / durSec);
 
-    var ext       = getExt(selectedFile.name);
-    var inputName = 'input' + ext;
-    var baseName  = selectedFile.name.replace(/\.[^/.]+$/, '');
-    var clipCount = Math.ceil(videoDuration / durSec);
+    log('📂 ' + selectedFile.name);
+    log('✂️ Splitting into ' + clipCount + ' clips × ' + durSec + 's\n');
+    setProgress(5, 'Buffering video...');
 
-    log('📂 ' + selectedFile.name + ' (' + fmtBytes(selectedFile.size) + ')');
-    log('⏱  ' + videoDuration.toFixed(2) + 's  →  ' + clipCount + ' clips × ' + durSec + 's\n');
-    setProgress(10, 'Reading file into memory...');
-
-    // Load file into FFmpeg virtual FS
     ff.FS('writeFile', inputName, await fetchFile(selectedFile));
-    log('✅ File loaded\n');
+    
+    for (let i = 0; i < clipCount; i++) {
+      const startSec = i * durSec;
+      const endSec   = Math.min(startSec + durSec, videoDuration);
+      const clipDur  = +(endSec - startSec).toFixed(3);
+      const outName  = 'clip_' + String(i + 1).padStart(3, '0') + '.mp4';
+      
+      const pt = 10 + Math.round((i / clipCount) * 85);
+      setProgress(pt, 'Generating clip ' + (i+1) + '/' + clipCount);
+      log('▶ ' + (i+1) + ': ' + startSec.toFixed(1) + 's – ' + endSec.toFixed(1) + 's');
 
-    var results = [];
+      await ff.run('-ss', String(startSec), '-i', inputName, '-t', String(clipDur), '-c', 'copy', '-avoid_negative_ts', 'make_zero', '-movflags', '+faststart', outName);
 
-    for (var i = 0; i < clipCount; i++) {
-      var startSec = i * durSec;
-      var endSec   = Math.min(startSec + durSec, videoDuration);
-      var clipDur  = +(endSec - startSec).toFixed(3);
-      var outName  = 'clip_' + String(i + 1).padStart(3, '0') + '.mp4';
-      var pct      = 10 + Math.round((i / clipCount) * 80);
-
-      setProgress(pct, 'Clip ' + (i+1) + '/' + clipCount + ' (' + fmtTime(startSec) + '–' + fmtTime(endSec) + ')');
-      log('✂️  Clip ' + (i+1) + '/' + clipCount + ':  ' + startSec.toFixed(2) + 's – ' + endSec.toFixed(2) + 's');
-
-      // Stream-copy: no re-encode → instant, lossless, exact segments
-      await ff.run(
-        '-ss',  String(startSec),
-        '-i',   inputName,
-        '-t',   String(clipDur),
-        '-c',   'copy',
-        '-avoid_negative_ts', 'make_zero',
-        '-movflags', '+faststart',
-        outName
-      );
-
-      var data = ff.FS('readFile', outName);
+      const data = ff.FS('readFile', outName);
       ff.FS('unlink', outName);
 
-      var blob = new Blob([data.buffer], { type: 'video/mp4' });
-      var url  = URL.createObjectURL(blob);
-      results.push({ name: baseName + '_clip' + (i+1) + '.mp4', url, blob, start: startSec, end: endSec, index: i+1 });
-      log('   ✓ ' + fmtBytes(blob.size));
+      const blob = new Blob([data.buffer], { type: 'video/mp4' });
+      const url  = URL.createObjectURL(blob);
+      outputBlobs.push({ name: baseName + '_clip' + (i+1) + '.mp4', url, blob, start: startSec, end: endSec, index: i+1 });
     }
 
-    try { ff.FS('unlink', inputName); } catch(e) {}
-
-    outputBlobs = results;
-    setProgress(100, '🎉 Done!');
-    log('\n✅ ' + clipCount + ' clip(s) ready!');
-    renderResults(results, durSec, baseName);
+    ff.FS('unlink', inputName);
+    setProgress(100, 'All segments ready!');
+    renderResults(outputBlobs, durSec, baseName);
 
   } catch (err) {
-    console.error('[VideoSplitter]', err);
-    log('\n❌ ' + err.message);
+    console.error(err);
+    alert('Splitting failed: ' + err.message);
     showSection('config');
-    showConfigError('Processing failed: ' + err.message);
   }
 });
 
-// ─── Render result cards ───────────────────────────────────────────────────────
 function renderResults(clips, durSec, baseName) {
   showSection('result');
-  resultSummary.textContent =
-    clips.length + ' clip' + (clips.length !== 1 ? 's' : '') +
-    ' · ' + durSec + 's each · "' + baseName + '"';
-
+  resultSummary.textContent = clips.length + ' segments from "' + baseName + '"';
   clipsGrid.innerHTML = '';
-  clips.forEach(function(clip) {
-    var card = document.createElement('div');
+  clips.forEach(clip => {
+    const card = document.createElement('div');
     card.className = 'clip-card';
-    card.innerHTML =
-      '<video src="' + clip.url + '" controls preload="metadata" playsinline ' +
-            'style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#000;"></video>' +
-      '<div class="clip-card-body">' +
-        '<span class="clip-badge"><i class="ph ph-film-strip"></i> Clip ' + clip.index + '</span>' +
-        '<p class="clip-title">' + clip.name + '</p>' +
-        '<p class="clip-time">' + fmtTime(clip.start) + ' – ' + fmtTime(clip.end) +
-          ' &nbsp;·&nbsp; ' + fmtBytes(clip.blob.size) + '</p>' +
-        '<a href="' + clip.url + '" download="' + clip.name + '" class="clip-download-btn">' +
-          '<i class="ph ph-download-simple"></i> Download' +
-        '</a>' +
-      '</div>';
+    card.innerHTML = `
+      <video src="${clip.url}" controls playsinline style="width:100%"></video>
+      <div class="clip-card-body">
+        <span class="clip-badge">Segment ${clip.index}</span>
+        <p class="clip-title">${clip.name}</p>
+        <p class="clip-time">${fmtTime(clip.start)} – ${fmtTime(clip.end)} · ${fmtBytes(clip.blob.size)}</p>
+        <a href="${clip.url}" download="${clip.name}" class="clip-download-btn"><i class="ph ph-download"></i> Download</a>
+      </div>`;
     clipsGrid.appendChild(card);
   });
 }
 
-// ─── Download All ZIP ─────────────────────────────────────────────────────────
-btnDownloadZip.addEventListener('click', async function() {
-  if (!outputBlobs.length) return;
-  var origHTML = btnDownloadZip.innerHTML;
+btnDownloadZip.addEventListener('click', async () => {
+  if (!outputBlobs.length || !window.JSZip) return;
+  const original = btnDownloadZip.innerHTML;
   btnDownloadZip.disabled = true;
-  btnDownloadZip.innerHTML = '<i class="ph ph-circle-notch" style="animation:spin 0.7s linear infinite;display:inline-block;"></i> Creating ZIP...';
-
+  btnDownloadZip.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Creating ZIP...';
   try {
-    if (!window.JSZip) throw new Error('JSZip not loaded.');
-    var zip    = new window.JSZip();
-    var folder = zip.folder('clips');
-    outputBlobs.forEach(function(c) { folder.file(c.name, c.blob); });
-
-    var content = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 1 } });
-    var zipName = (selectedFile ? selectedFile.name.replace(/\.[^/.]+$/, '') : 'clips') + '_split.zip';
-    var a = document.createElement('a');
+    const zip = new JSZip();
+    outputBlobs.forEach(c => zip.file(c.name, c.blob));
+    const content = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
     a.href = URL.createObjectURL(content);
-    a.download = zipName;
-    document.body.appendChild(a);
+    a.download = (selectedFile ? selectedFile.name.split('.')[0] : 'clips') + '_split.zip';
     a.click();
-    document.body.removeChild(a);
-    setTimeout(function() { URL.revokeObjectURL(a.href); }, 1500);
-  } catch (err) {
-    alert('ZIP error: ' + err.message);
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   } finally {
-    btnDownloadZip.disabled  = false;
-    btnDownloadZip.innerHTML = origHTML;
+    btnDownloadZip.disabled = false;
+    btnDownloadZip.innerHTML = original;
   }
 });
