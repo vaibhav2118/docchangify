@@ -2,6 +2,7 @@ const fs = require('fs');
 
 const tools = {
   "base64": "Base64 Encoder / Decoder",
+  "circular-image-cropper": "Circular Image Cropper",
   "compress-pdf": "Compress PDF",
   "csv-to-json": "CSV to JSON Converter",
   "image-compressor": "Image Compressor",
@@ -40,10 +41,16 @@ files.forEach(file => {
   const newMeta = `    <title>${toolName} – Free Online Tool | DocChangify</title>
     <meta name="description" content="Use this ${toolName} instantly online with DocChangify. Free, fast processing, runs locally, and no signup required." />
     <link rel="canonical" href="https://docchangify.in/${toolSlug}" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <meta property="og:title" content="${toolName} – Free Online Tool" />
     <meta property="og:description" content="Use this ${toolName} instantly online with DocChangify. Free, fast processing, runs locally, and no signup required." />
+    <meta property="og:image" content="https://docchangify.in/favicon.png" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://docchangify.in/${toolSlug}" />`;
+    <meta property="og:url" content="https://docchangify.in/${toolSlug}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://docchangify.in/favicon.png" />`;
 
   // Remove existing title, description, and related link/meta tags
   content = content.replace(/<title>.*?<\/title>/gi, '');

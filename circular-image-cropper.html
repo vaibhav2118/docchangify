@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    
+    <meta name="twitter:image" content="https://docchangify.in/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    
+    
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Cropper.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+    
+    <link rel="stylesheet" href="/style.css" />
+    
+    <style>
+      .cropper-view-box,
+      .cropper-face {
+        border-radius: 50%;
+      }
+      
+      /* The mask for the circular crop box */
+      .cropper-view-box {
+        outline: 0;
+        box-shadow: 0 0 0 1px #39f;
+      }
+      
+      .cropper-face {
+        background-color: inherit !important;
+      }
+
+      .cropper-dashed,
+      .cropper-point,
+      .cropper-line {
+        display: none !important;
+      }
+
+      .cropper-bg {
+        background-image: none !important;
+      }
+      
+      .preview-container {
+        width: 150px;
+        height: 150px;
+        overflow: hidden;
+        border-radius: 50%;
+        border: 2px solid #e2e8f0;
+        margin: 0 auto;
+        background-image: linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%, #eee 100%), 
+                          linear-gradient(45deg, #eee 25%, white 25%, white 75%, #eee 75%, #eee 100%);
+        background-size: 20px 20px;
+        background-position: 0 0, 10px 10px;
+      }
+      
+      #cropper-wrapper {
+        max-height: 500px;
+        background-color: #f8fafc;
+        border-radius: 1rem;
+        overflow: hidden;
+      }
+      
+      .dark #cropper-wrapper {
+        background-color: #0f172a;
+      }
+    </style>
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-20SKLFV3YG"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-20SKLFV3YG');
+    </script>
+      <title>Circular Image Cropper – Free Online Tool | DocChangify</title>
+    <meta name="description" content="Use this Circular Image Cropper instantly online with DocChangify. Free, fast processing, runs locally, and no signup required." />
+    <link rel="canonical" href="https://docchangify.in/circular-image-cropper" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta property="og:title" content="Circular Image Cropper – Free Online Tool" />
+    <meta property="og:description" content="Use this Circular Image Cropper instantly online with DocChangify. Free, fast processing, runs locally, and no signup required." />
+    <meta property="og:image" content="https://docchangify.in/favicon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://docchangify.in/circular-image-cropper" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://docchangify.in/favicon.png" />
+  </head>
+  <body class="min-h-screen flex flex-col antialiased dark:bg-slate-950 dark:text-slate-100" style="background:#f1f5ff;font-family:'Inter',sans-serif;">
+    <header class="sticky top-0 z-50 glass dark:bg-slate-900/80 border-b border-white/30 dark:border-slate-800 shadow-sm backdrop-blur-xl">
+      <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-[70px]">
+        <a href="/" class="flex items-center gap-2.5">
+          <img src="/favicon.png" alt="DocChangify Logo" class="w-10 h-10 rounded-xl shadow-lg border border-white/20" />
+          <span class="text-xl font-extrabold" style="background:linear-gradient(135deg,#6366f1,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">DocChangify</span>
+        </a>
+        <div class="flex items-center gap-4">
+          <a href="/" class="text-sm font-semibold text-slate-500 hover:text-indigo-600 transition-colors">← Back</a>
+          <button id="theme-toggle" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors">
+            <i class="ph ph-moon text-lg block dark:hidden"></i>
+            <i class="ph ph-sun text-lg hidden dark:block text-yellow-400"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full fade-in">
+      <!-- Breadcrumb -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <a href="/" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-orange-500 transition-colors">
+          <i class="ph ph-arrow-left text-lg"></i> Back to Tools
+        </a>
+        <nav class="flex items-center gap-2 text-sm text-slate-400 font-medium">
+          <a href="/" class="hover:text-slate-600">Home</a>
+          <i class="ph ph-caret-right text-xs"></i>
+          <a href="/#image-edit-tools" class="hover:text-slate-600">Image Editing</a>
+          <i class="ph ph-caret-right text-xs"></i>
+          <span class="text-slate-700 dark:text-slate-300">Circular Cropper</span>
+        </nav>
+      </div>
+
+      <!-- Hero Header -->
+      <div class="text-center mb-10">
+        <div class="inline-flex py-1.5 px-4 rounded-full text-sm font-bold mb-4 items-center gap-2" style="background:rgba(249,115,22,0.1);color:#f97316;border:1px solid rgba(249,115,22,0.25);">
+          <i class="ph ph-circle-half"></i> Circular Crop
+        </div>
+        <h1 class="text-4xl md:text-5xl font-black tracking-tight mb-4 text-slate-900 dark:text-white">Circular Image Cropper</h1>
+        <p class="text-lg text-slate-500 max-w-2xl mx-auto">Create perfect circular profile pictures instantly. Drag, zoom, and crop with 100% privacy.</p>
+      </div>
+
+      <!-- Upload Zone -->
+      <div id="upload-section" class="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden mb-8">
+        <div id="drop-zone" class="upload-zone m-6">
+          <input type="file" id="file-input" class="hidden" accept="image/*" />
+          <div class="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center mb-6 shadow-md text-white" style="background: linear-gradient(135deg, #f97316, #ec4899);">
+            <i class="ph ph-crop text-4xl"></i>
+          </div>
+          <h3 class="text-3xl font-black mb-3 text-slate-900 dark:text-white">Drop your image here</h3>
+          <p class="text-slate-500 mb-8">Click or drag to upload an image (JPG, PNG, WEBP)</p>
+          <button class="btn-primary pointer-events-none px-10" style="background:linear-gradient(135deg,#f97316,#ec4899);">
+            <i class="ph ph-upload-simple text-xl"></i> Browse Image
+          </button>
+        </div>
+      </div>
+
+      <!-- Editor Section -->
+      <div id="editor-section" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+        <!-- Main Cropper -->
+        <div class="lg:col-span-2 space-y-6">
+          <div id="cropper-wrapper" class="shadow-inner border border-slate-200 dark:border-slate-800">
+            <img id="image-to-crop" style="max-width: 100%; display: block;" />
+          </div>
+          
+          <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-lg flex flex-wrap justify-between items-center gap-4">
+             <div class="flex gap-2">
+                <button id="btn-zoom-in" class="p-3 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition-colors" title="Zoom In">
+                  <i class="ph ph-plus-circle text-2xl"></i>
+                </button>
+                <button id="btn-zoom-out" class="p-3 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition-colors" title="Zoom Out">
+                  <i class="ph ph-minus-circle text-2xl"></i>
+                </button>
+                <button id="btn-rotate" class="p-3 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition-colors" title="Rotate">
+                  <i class="ph ph-arrow-clockwise text-2xl"></i>
+                </button>
+                <button id="btn-reset" class="p-3 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition-colors" title="Reset">
+                  <i class="ph ph-arrow-counter-clockwise text-2xl"></i>
+                </button>
+             </div>
+             
+             <div class="flex gap-3">
+                <button id="btn-new" class="px-6 py-3 rounded-xl border border-slate-200 dark:border-slate-700 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Change Image</button>
+                <button id="btn-crop" class="px-8 py-3 rounded-xl text-white font-black shadow-lg" style="background: linear-gradient(135deg, #f97316, #ec4899);">
+                  Crop & Download
+                </button>
+             </div>
+          </div>
+        </div>
+
+        <!-- Sidebar: Preview & Info -->
+        <div class="space-y-6">
+          <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-700 text-center">
+            <h3 class="font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-wider text-sm">Live Preview</h3>
+            <div id="preview" class="preview-container mb-6"></div>
+            <p class="text-xs text-slate-400">The transparent area will be removed in the final PNG.</p>
+          </div>
+
+          <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-700">
+            <h4 class="font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+              <i class="ph ph-info text-orange-500"></i> Tips
+            </h4>
+            <ul class="text-sm text-slate-500 space-y-3">
+              <li class="flex items-start gap-2"><i class="ph ph-check-circle text-orange-400 mt-1"></i> Use mouse wheel to zoom in and out.</li>
+              <li class="flex items-start gap-2"><i class="ph ph-check-circle text-orange-400 mt-1"></i> Drag the image to center the focal point.</li>
+              <li class="flex items-start gap-2"><i class="ph ph-check-circle text-orange-400 mt-1"></i> Final output is a high-quality transparent PNG.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- FAQ / Info -->
+      <section class="max-w-4xl mx-auto mt-20 mb-20">
+        <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-8 text-center uppercase tracking-tight">How to use Circular Image Cropper</h2>
+        <div class="grid md:grid-cols-3 gap-8">
+          <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
+            <div class="w-12 h-12 rounded-2xl bg-orange-100 dark:bg-orange-900/30 text-orange-600 flex items-center justify-center mb-4">
+              <i class="ph ph-upload text-2xl font-black"></i>
+            </div>
+            <h4 class="font-black text-lg mb-2 text-slate-900 dark:text-white">1. Upload Asset</h4>
+            <p class="text-slate-500 text-sm">Select an image from your device. It stays in your browser.</p>
+          </div>
+          <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
+            <div class="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center mb-4">
+              <i class="ph ph-arrows-out text-2xl font-black"></i>
+            </div>
+            <h4 class="font-black text-lg mb-2 text-slate-900 dark:text-white">2. Adjust Frame</h4>
+            <p class="text-slate-500 text-sm">Zoom and drag until the perfect part is inside the circular frame.</p>
+          </div>
+          <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 flex items-center justify-center mb-4">
+              <i class="ph ph-download text-2xl font-black"></i>
+            </div>
+            <h4 class="font-black text-lg mb-2 text-slate-900 dark:text-white">3. Get PNG</h4>
+            <p class="text-slate-500 text-sm">Download your round image as a transparent PNG instantly.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Related -->
+      <div class="pt-8 border-t border-slate-200 dark:border-slate-800 mb-16">
+        <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Related Image Tools</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <a href="/image-crop" class="saas-card card-image p-4 flex items-center gap-3">
+             <div class="w-10 h-10 rounded-lg icon-image flex items-center justify-center flex-shrink-0 shadow-sm"><i class="ph ph-crop text-xl"></i></div>
+             <div class="font-bold text-sm">Normal Crop</div>
+          </a>
+          <a href="/image-editor" class="saas-card card-image p-4 flex items-center gap-3">
+             <div class="w-10 h-10 rounded-lg icon-image flex items-center justify-center flex-shrink-0 shadow-sm"><i class="ph ph-pencil-line text-xl"></i></div>
+             <div class="font-bold text-sm">Full Editor</div>
+          </a>
+          <a href="/image-resizer" class="saas-card card-image p-4 flex items-center gap-3">
+             <div class="w-10 h-10 rounded-lg icon-image flex items-center justify-center flex-shrink-0 shadow-sm"><i class="ph ph-arrows-out-line-horizontal text-xl"></i></div>
+             <div class="font-bold text-sm">Resizer</div>
+          </a>
+          <a href="/image-compressor" class="saas-card card-image p-4 flex items-center gap-3">
+             <div class="w-10 h-10 rounded-lg icon-image flex items-center justify-center flex-shrink-0 shadow-sm"><i class="ph ph-arrows-in text-xl"></i></div>
+             <div class="font-bold text-sm">Compressor</div>
+          </a>
+        </div>
+      </div>
+          <!-- SEO Structured Content -->
+      <section class="prose dark:prose-invert max-w-none mt-16 mb-16 mx-auto w-full">
+        <h1 class="text-3xl font-extrabold mb-4 text-slate-900 dark:text-white">Circular Image Cropper</h1>
+        <p class="text-lg text-slate-600 dark:text-slate-400 mb-8">
+          Welcome to the best free online Circular Image Cropper. DocChangify allows you to easily process, convert, and format your files or text instantly, directly from your browser without ever uploading data to a server.
+        </p>
+
+        <h2 class="text-2xl font-bold mb-4 border-b border-slate-200 dark:border-slate-800 pb-2">How to use</h2>
+        <ol class="list-decimal pl-6 space-y-2 mb-8 text-slate-700 dark:text-slate-300">
+          <li>Upload your file or paste your input into the tool interface above.</li>
+          <li>Adjust any settings or wait for the automatic processing to complete.</li>
+          <li>Click the download or copy button to get your processed result.</li>
+        </ol>
+
+        <h2 class="text-2xl font-bold mb-4 border-b border-slate-200 dark:border-slate-800 pb-2">Features</h2>
+        <ul class="list-disc pl-6 space-y-2 mb-8 text-slate-700 dark:text-slate-300">
+          <li><strong>Lightning Fast Processing:</strong> Operates locally on your device's memory.</li>
+          <li><strong>100% Secure & Private:</strong> Zero files are uploaded to our servers.</li>
+          <li><strong>No Signup Required:</strong> Unlimited usage, totally free without an account.</li>
+        </ul>
+
+        <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm mt-8">
+          <h2 class="text-2xl font-bold mb-6 border-b border-slate-100 dark:border-slate-700 pb-4">FAQ</h2>
+          <div class="space-y-6">
+            <div>
+              <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">Are my files safe? Does this upload to a server?</h3>
+              <p class="text-slate-600 dark:text-slate-400 text-sm">Yes, this application is completely "Client-Side" - meaning the file conversion happens inside your own computer processor and browser memory. No files are ever sent over the internet.</p>
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">Is the Circular Image Cropper completely free?</h3>
+              <p class="text-slate-600 dark:text-slate-400 text-sm">Absolutely. DocChangify believes in open access to utility tools. We don't ask for premium subscriptions, credit cards, or your email address.</p>
+            </div>
+          </div>
+        </div>
+      </section>\n    </main>
+
+    <footer class="bg-slate-900 text-slate-400 py-8 text-center text-sm">
+      <p>&copy; 2026 DocChangify | <a href="/" class="hover:text-white">Home</a> | <a href="/privacy" class="hover:text-white">Privacy</a></p>
+    </footer>
+
+    <!-- Cropper.js Lib -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script type="module" src="/src/tools/circular-image-cropper.js"></script>
+  </body>
+</html>
