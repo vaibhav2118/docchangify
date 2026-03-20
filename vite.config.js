@@ -47,6 +47,7 @@ export default defineConfig({
         imageEditor: resolve(__dirname, 'image-editor.html'),
         tools: resolve(__dirname, 'tools.html'),
         videoSplitter: resolve(__dirname, 'video-splitter.html'),
+        circularImageCropper: resolve(__dirname, 'circular-image-cropper.html'),
       }
     }
   }
