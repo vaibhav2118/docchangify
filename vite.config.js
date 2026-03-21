@@ -48,6 +48,7 @@ export default defineConfig({
         tools: resolve(__dirname, 'tools.html'),
         videoSplitter: resolve(__dirname, 'video-splitter.html'),
         circularImageCropper: resolve(__dirname, 'circular-image-cropper.html'),
+        youtubeBannerFormatter: resolve(__dirname, 'youtube-banner-formatter.html'),
       }
     }
   }
