@@ -6,6 +6,41 @@
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://docchangify.in/blog</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://docchangify.in/about</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://docchangify.in/contact</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://docchangify.in/privacy</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://docchangify.in/terms</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://docchangify.in/blog/why-browser-side-tools-privacy</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://docchangify.in/blog/essential-web-utility-tools</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://docchangify.in/base64</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -121,12 +156,12 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://docchangify.in/word-counter</loc>
+    <loc>https://docchangify.in/video-splitter</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://docchangify.in/video-splitter</loc>
+    <loc>https://docchangify.in/word-counter</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
